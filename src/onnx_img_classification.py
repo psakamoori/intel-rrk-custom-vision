@@ -19,6 +19,7 @@
 import numpy as np    # we're going to use numpy to process input and output data
 import onnxruntime    # to inference ONNX models, we use the ONNX Runtime
 import onnx
+import sys
 from onnx import numpy_helper
 import urllib.request
 import json
@@ -27,7 +28,6 @@ import time
 
 model_path = '../models/image_classification/dog_n_cat/model.onnx'
 labels_path = '../models/image_classification/dog_n_cat/labels.txt'
-image_path = '../samples/dog1.jpg'
 
 # display images in notebook
 from PIL import Image, ImageDraw, ImageFont
@@ -78,40 +78,46 @@ def softmax(x):
 def postprocess(result):
     return softmax(np.array(result)).tolist()
 
-labels = load_labels(labels_path)
-image = Image.open(image_path)
+def main(image_file):
 
-print("Image size: ", image.size)
-image_data = np.array(image).transpose(2, 0, 1)
-input_data = preprocess(image_data)
+    labels = load_labels(labels_path)
+    image = Image.open(image_file)
 
-start = time.time()
-raw_result = {}
-raw_result = session.run([], {input_name: input_data})[1]
-end = time.time()
+    image_data = np.array(image).transpose(2, 0, 1)
+    input_data = preprocess(image_data)
 
-print("raw_result", raw_result)
-for i in raw_result:
-  label_dict = i
+    start = time.time()
+    raw_result = {}
+    raw_result = session.run([], {input_name: input_data})[1]
+    end = time.time()
 
-output = []
-for key in labels:
-    output.append(label_dict[key])
+    print("raw_result", raw_result)
+    for i in raw_result:
+      label_dict = i
 
-res = postprocess(output)
+    output = []
+    for key in labels:
+        output.append(label_dict[key])
 
-inference_time = np.round((end - start) * 1000, 2)
-idx = np.argmax(res)
+    res = postprocess(output)
+    inference_time = np.round((end - start) * 1000, 2)
+    idx = np.argmax(res)
 
-print('========================================')
-print('Final top prediction is: ' + labels[idx])
-print('========================================')
+    print('========================================')
+    print('Final top prediction is: ' + labels[idx])
+    print('========================================')
 
-print('========================================')
-print('Inference time: ' + str(inference_time) + " ms")
-print('========================================')
+    print('========================================')
+    print('Inference time: ' + str(inference_time) + " ms")
+    print('========================================')
 
-sort_idx = np.flip(np.squeeze(np.argsort(res)))
-print('============ Top 5 labels are: ============================')
-print(labels[sort_idx[:5]])
-print('===========================================================')
+    sort_idx = np.flip(np.squeeze(np.argsort(res)))
+    print('============ Top 5 labels are: ============================')
+    print(labels[sort_idx[:5]])
+    print('===========================================================')
+
+if __name__ == '__main__':
+    if len(sys.argv) <= 1:
+        print('USAGE: {} image_filename'.format(sys.argv[0]))
+    else:
+        main(sys.argv[1])
