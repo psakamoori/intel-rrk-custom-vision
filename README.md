@@ -64,3 +64,8 @@
    Face Detection output 
 
    ![](/output/objDet-FaceDetection.png) 
+
+   Car and Traffic Light Detection
+
+   ![](/output/ObjDet-CarNTrafficLight.png)  
+
