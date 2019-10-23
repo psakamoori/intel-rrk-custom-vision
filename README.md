@@ -34,15 +34,18 @@
   }
  
 ##Testing
- # Image-classifcation (with pre-trained ONNX models using customvision.ai)
+ # Image-classifcation
    - Folder "models/image_classification" has few pre-trained onnx models
    - Folder "samples" has few example jpg's to use for testing
    - Initialize "model_path", "labels_path" and "image_path" accordingly in onnx_image_classification.py 
    - Execute command: src$ python3 onnx_image_classifciation.py
    - Expected Output: Predicted image classification result with label 
 
- # Object Detection (with pre-trained Face detection ONNX models using customvision.ai)
+ # Object Detection
    - Folder "models/object_detect/" has face detection pre-trained onnx model
    - Execute command: src/objdet$ python3 onnxruntime_predict.py <model configuration file : model.config>
    - Expected Output: Renders webcam video frames with inference results (bounding box, detection label and score)
+   
+    Ex:Face Detection output 
+    
     ![](/output/objDet-FaceDetection.png) 
