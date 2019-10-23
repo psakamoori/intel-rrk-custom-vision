@@ -17,21 +17,21 @@
 
 ##Ex:model.config (for Object detection)
  
-   {
-    "Network":0,
-    "modeltype":"onnx model",
-    "Input":"cam",  
-    "display":1,
-    "Anchors": [[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]],
-    "ScaleWidth":416,
-    "ScaleHeight":416,
-    "InputFormat":"RGB",
-    "ConfThreshold":0.5,    
-    "IOU_THRESHOLD":0.45,
-    "Runtime":1,
-    "MODEL_FILENAME":"../../models/object_detection/face_detect/model.onnx",
-    "LABELS_FILENAME":"../../models/object_detection/face_detect/labels.txt"
-   }
+  {
+   "Network":0,  
+   "modeltype":"onnx model",  
+   "Input":"cam",    
+   "display":1,  
+   "Anchors": [[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]],  
+   "ScaleWidth":416, 
+   "ScaleHeight":416,  
+   "InputFormat":"RGB",  
+   "ConfThreshold":0.5,   
+   "IOU_THRESHOLD":0.45,  
+   "Runtime":1,  
+   "MODEL_FILENAME":"../../models/object_detection/face_detect/model.onnx",  
+   "LABELS_FILENAME":"../../models/object_detection/face_detect/labels.txt"  
+  }
  
 ##Testing
  # Image-classifcation (with pre-trained ONNX models using customvision.ai)
