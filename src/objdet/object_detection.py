@@ -5,14 +5,11 @@
 # (4. if inference speed is too slow for you, try to make w' x h' smaller, which defined in object_detection.py DEFAULT_INPUT_SIZE)
 import numpy as np
 import math
+import cv2
 
 class ObjectDetection(object):
     """Class for Custom Vision's exported object detection model
     """
-
-    ANCHORS = np.array([[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]])
-    IOU_THRESHOLD = 0.45
-    DEFAULT_INPUT_SIZE = 512 * 512
 
     def __init__(self, labels, prob_threshold=0.10, max_detections = 20):
         """Initialize the class
@@ -75,7 +72,7 @@ class ObjectDetection(object):
             iou = overlap_area / (areas[i] + areas[other_indices] - overlap_area)
 
             # Find the overlapping predictions
-            overlapping_indices = other_indices[np.where(iou > self.IOU_THRESHOLD)[0]]
+            overlapping_indices = other_indices[np.where(iou > self.iou_threshold)[0]]
             overlapping_indices = np.append(overlapping_indices, i)
 
             # Set the probability of overlapping predictions to zero, and udpate max_probs and max_classes.
@@ -126,14 +123,14 @@ class ObjectDetection(object):
         return self.postprocess(prediction_outputs)
 
     def preprocess(self, image):
-        image = image.convert("RGB") if image.mode != "RGB" else image
-        #ratio = math.sqrt(self.DEFAULT_INPUT_SIZE / image.width / image.height)
-        #new_width = int(image.width * ratio)
-        #new_height = int(image.height * ratio)
-        #new_width = 32 * round(new_width / 32);
-        #new_height = 32 * round(new_height / 32);
-        #image = image.resize((new_width, new_height))
-        image = image.resize((416, 416))
+        if self.input_format == "RGB":
+           image = cv2.resize(image, (int(self.model_inp_width), int(self.model_inp_height)))
+        elif self.input_format == "BGR":
+           image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+           image = cv2.resize(image, (int(self.model_inp_width), int(self.model_inp_height)))
+        elif self.input_format == "GRAY":
+           image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+           image = cv2.resize(image, (int(self.model_inp_width), int(self.model_inp_height)))
         return image
 
     def predict(self, preprocessed_inputs):
@@ -152,7 +149,7 @@ class ObjectDetection(object):
         Returns:
             List of Prediction objects.
         """
-        boxes, class_probs = self._extract_bb(prediction_outputs, self.ANCHORS)
+        boxes, class_probs = self._extract_bb(prediction_outputs, self.anchors)
 
         # Remove bounding boxes whose confidence is lower than the threshold.
         max_probs = np.amax(class_probs, axis=1)
