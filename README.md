@@ -45,4 +45,4 @@
    - Folder "models/object_detect/" has face detection pre-trained onnx model
    - Execute command: src/objdet$ python3 onnxruntime_predict.py <model configuration file : model.config>
    - Expected Output: Renders webcam video frames with inference results (bounding box, detection label and score)
- 
+    ![](/output/objDet-FaceDetection.PNG) 
