@@ -34,7 +34,10 @@
     "Runtime":1,  
     "MODEL_FILENAME":"../../models/image_classification/dog_n_cat/model.onnx",  
     "LABELS_FILENAME":"../../models/image_classification/dog_n_cat/labels.txt"  
-   }  
+   }     
+   Classification results  
+
+   ![](/output/image_classification_results.png)  
 
  # Object Detection
    - Folder "models/object_detect/" has face detection pre-trained onnx model
@@ -59,5 +62,5 @@
   }  
 
    Face Detection output 
-    
+
    ![](/output/objDet-FaceDetection.png) 
