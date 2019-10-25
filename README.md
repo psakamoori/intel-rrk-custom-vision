@@ -17,13 +17,13 @@
 ##Testing
  # Image-classifcation
    - Folder "models/image_classification" has few pre-trained onnx models
-   - Execute command: src/imgcls$ python3 onnx_image_classifciation.py <model configuration file: model.config>
+   - Execute command: src/imgcls$ python3 onnx_image_classifciation.py  model.config
    - Expected Output: Predicted image classification result with label 
    -
      ##Example:model.config (for Image Classification)  
    {  
     "Network":0,  
-    "modeltype":"o nnx model",  
+    "modeltype":"onnx model",  
     "Input":"cam",  
     "display":1,  
     "mean_vec":[0.485, 0.456, 0.406],  
@@ -41,7 +41,7 @@
 
  # Object Detection
    - Folder "models/object_detect/" has face detection pre-trained onnx model
-   - Execute command: src/objdet$ python3 onnxruntime_predict.py <model configuration file : model.config>
+   - Execute command: src/objdet$ python3 onnxruntime_predict.py model.config
    - Expected Output: Renders webcam video frames with inference results (bounding box, detection label and score)
    -
      ##Example:model.config (for Object detection)  
