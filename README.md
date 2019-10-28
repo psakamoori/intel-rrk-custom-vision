@@ -37,7 +37,7 @@
    }     
    Classification results  
 
-   ![](/output/image_classification_results.png)  
+   ![](/output/cat.png) 
 
  # Object Detection
    - Folder "models/object_detect/" has face detection pre-trained onnx model
