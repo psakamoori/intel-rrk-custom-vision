@@ -13,10 +13,13 @@ Instructions to install Azure IoT Edge Runtime and Create Azure IoT Resoruce
 ## Step 2: Create Azure IoT Resoeruces
 
   - Execute below script to setup IoT Resources (IoT Hub, IoT Edge & Generative device connection string)
-    -$sudo python3 az-resoruce-create.py <Azure account user-name>
-  - User input: Password to Azure Cloud Account
+    - $sudo python3 az-resoruce-create.py <Azure account user-name>
+  - User input:
+    - Password to Azure Cloud Account
+    - <Optional@Run-Time> Resoruce Group Name & Account Location
+    - <Optional@Run-Time> IoT Hub Name and IoT Edge Name
   - Output:
-     - Resoruce Group Info
+     - Resource Group Info
      - IoT Hub Info
      - Device connection string 
 
