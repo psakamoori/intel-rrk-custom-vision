@@ -1,5 +1,5 @@
 
-Instructions to install Azure IoT Edge Runtime and Azure IoT Resoruce creation
+Instructions to install Azure IoT Edge Runtime and Create Azure IoT Resoruce
 
 ## Pre-requisites 
   - Azure Cloud Account
