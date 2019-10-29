@@ -35,7 +35,6 @@ from getpass import getpass
 
 global rs_grp_name, hub_name, dev_name
 
-#os.system('az login -u "smartstartup1081@gmail.com" -p "adcsi4e28"')
 def main(username):
     passwd = getpass("ENTER Azure account login password: ")
     subprocess.call(['az', 'login', '-u', username, '-p', passwd])
