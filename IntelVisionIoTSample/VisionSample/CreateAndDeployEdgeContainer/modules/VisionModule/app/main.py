@@ -23,9 +23,6 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
-import wget
-from os.path import basename
-from zipfile import ZipFile
 
 from object_detection import ObjectDetection
 
@@ -64,36 +61,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         outputs = self.session.run(None, {self.input_name: inputs})
         return np.squeeze(outputs).transpose((1,2,0))
 
-def model_dir_clean_up(model_dir_path):
-
-    # Remove any pre-exisiting Vision DevKit files/dirs 
-    if os.path.exists(str(model_dir_path) + "/model.onnx"):
-       os.remove(str(model_dir_path) + "/model.onnx")
-    if os.path.exists(str(model_dir_path) + "/labels.onnx"):
-       os.remove(str(model_dir_path) + "/labels.txt")
-    if os.path.exists(str(model_dir_path) + "/*.manifest"):
-       os.remove(str(model_dir_path) + "/*.manifest")
-
-def main(cv_url):
-    
-    # Download customvision Vision DevKit (.zip)
-    cv_files = wget.download(cv_url)
-    
-    # Remove any pre-exisiting Vision DevKit files/dirs
-    model_dir_clean_up("../model")
- 
-    print("\n Extracting Vision DevKit .zip to dir: ../model/")
-    with ZipFile(cv_files, 'r') as zipObj:
-         zipObj.extractall('../model')
-
-    # Remove local .zip copy after extracting
-    os.system("rm -rf *.zip")
-
-    # Remove un-used files/dir
-    if os.path.exists("../model/CSharp"):
-       os.system("rm -rf ../model/CSharp")
-    if os.path.exists("../model/python"):
-       os.system("rm -rf ../model/python")
+def main():
     
     # Config file for Object Detection
     ret = os.path.exists('../model/model.config')
@@ -107,15 +75,12 @@ def main(cv_url):
 
     od_model = ONNXRuntimeObjectDetection("../model/model.config")
 
-    if od_model.video_inp == 'cam':
-        cap = cv2.VideoCapture(0)
-        # Reading widht and height details
-        img_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        img_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        if cap == None:
-           print("Error: Input Camera device not found/detected")
-    else:
-        print("Error: Invalid input argument/source")
+    cap = cv2.VideoCapture(0)
+    # Reading widht and height details
+    img_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    img_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if cap == None:
+       print("Error: Input Camera device not found/detected")
 
     color = (255, 0 , 0)
     thickness = 2
