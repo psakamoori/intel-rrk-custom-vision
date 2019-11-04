@@ -1,6 +1,6 @@
 FROM python:3.7
 
-FROM ortopenvino.azurecr.io/onnxruntime-openvino-myriad:latest
+#FROM ortopenvino.azurecr.io/onnxruntime-openvino-myriad:latest
 
 WORKDIR /app
 
