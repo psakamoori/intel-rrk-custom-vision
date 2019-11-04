@@ -1,7 +1,6 @@
 azure-iothub-device-client
 setuptools 
 numpy 
-json 
 
 opencv-python
 
