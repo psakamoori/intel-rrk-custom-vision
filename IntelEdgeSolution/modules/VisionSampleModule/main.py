@@ -128,7 +128,4 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    if len(sys.argv) <= 1:
-        print('USAGE: {} customvision Vision DevKit url (with onnx model)'.format(sys.argv[0]))
-    else:
-        main(sys.argv[1])
+    main()
