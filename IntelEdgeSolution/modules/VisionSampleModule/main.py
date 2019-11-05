@@ -23,8 +23,19 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
+import iot_hub_manager
+import datetime
 
 from object_detection import ObjectDetection
+from iot_hub_manager import IotHubManager
+from iothub_client import IoTHubTransportProvider, IoTHubError
+
+# Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+
+# Disable sending D2C messages to IoT Hub to prevent consuming network bandwidth
+iot_hub_manager = None
+
 
 class ONNXRuntimeObjectDetection(ObjectDetection):
     """Object Detection class for ONNX Runtime
@@ -61,8 +72,22 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         outputs = self.session.run(None, {self.input_name: inputs})
         return np.squeeze(outputs).transpose((1,2,0))
 
+def model_dir_clean_up(model_dir_path):
+
+    # Remove any pre-exisiting Vision DevKit files/dirs 
+    if os.path.exists(str(model_dir_path) + "/model.onnx"):
+        os.remove(str(model_dir_path) + "/model.onnx")
+    if os.path.exists(str(model_dir_path) + "/labels.onnx"):
+        os.remove(str(model_dir_path) + "/labels.txt")
+    if os.path.exists(str(model_dir_path) + "/*.manifest"):
+        os.remove(str(model_dir_path) + "/*.manifest")
+
 def main():
-    
+
+    #Adding iot support 
+    # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+    IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+    iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
     # Config file for Object Detection
     ret = os.path.exists('./model/model.config')
 
@@ -70,7 +95,7 @@ def main():
     if ret is False:
        print("\n ERROR: No model.config file found under model dir")
        print("\n Exisiting....")
-       model_dir_clean_up("../model")
+       model_dir_clean_up("./model")
        sys.exit(0)
 
     od_model = ONNXRuntimeObjectDetection("./model/model.config")
@@ -111,6 +136,14 @@ def main():
                    fontScale, color, thickness, cv2.LINE_AA)
            frame = cv2.putText(frame, score, (x+w-50, y), font,
                    fontScale, color, thickness, cv2.LINE_AA)
+           message = { "Label": out_label,
+                "Confidence": score,
+                "Position": [x, y, x_end, y_end],
+                "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            }
+             # Send message to IoT Hub
+           if iot_hub_manager is not None:
+                iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
        if od_model.disp == 1:
            # Displaying the image
@@ -129,7 +162,4 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    if len(sys.argv) <= 1:
-        print('USAGE: {} customvision Vision DevKit url (with onnx model)'.format(sys.argv[0]))
-    else:
-        main(sys.argv[1])
+    main()
