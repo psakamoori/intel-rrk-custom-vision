@@ -70,7 +70,6 @@ def main():
     if ret is False:
        print("\n ERROR: No model.config file found under model dir")
        print("\n Exisiting....")
-       model_dir_clean_up("../model")
        sys.exit(0)
 
     od_model = ONNXRuntimeObjectDetection("./model/model.config")
