@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  Usage : $python3 main.py <customvision onnx model url>
+  Usage : $python3 main_cv_url.py <customvision onnx model url>
   Author: Pradeep, Sakhamoori <pradeep.sakhamoori@intel.com>
   
 """
@@ -140,11 +140,13 @@ def objdet_init(cv_url):
 
     return od_handle, cap_handle
 
-def model_inference(ob_handle, cap_handle):
+def model_inference(cv_url):
+
+    ob_handle, cap_handle = objdet_init(cv_url)
 
     # Reading widht and height details
-    img_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    img_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    img_width = int(cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
+    img_height = int(cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     while cap_handle.isOpened():
 
@@ -174,10 +176,14 @@ def model_inference(ob_handle, cap_handle):
         cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
         if od_handle.disp == 1:
+            cv2.putText(frame, "Press 'r' to Refresh", (5,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
             # Displaying the image
             cv2.imshow("Inference results", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-               break
+            #if cv2.waitKey(1) & 0xFF == ord('q'):
+            #   break
+            if cv2.waitKey(1) & 0xFF == ord('r'):
+              cap_handle.release()
+              model_inference()
         else:
            for d in predictions:
               print("Object(s) List: ", str(d['tagName'])) 
@@ -191,10 +197,8 @@ def model_inference(ob_handle, cap_handle):
 
 def main(cv_url):
 
-    ob_handle, cap_handle = objdet_init(cv_url)
-
     # Triggering infernece
-    model_inference(ob_handle, cap_handle)
+    model_inference(cv_url)
 
 if __name__ == '__main__':
    if len(sys.argv) <= 1:
