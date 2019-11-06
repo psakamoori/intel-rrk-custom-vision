@@ -65,32 +65,44 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-def model_inference():
-    
+def create_objdet_handle(model_config_path):
+
     # Config file for Object Detection
     ret = os.path.exists('./model/model.config')
 
     # Check for model.config file
     if ret is False:
        print("\n ERROR: No model.config file found under model dir")
-       print("\n Exisiting....")
+       print("\n Exiting inference....")
        sys.exit(0)
 
     od_model = ONNXRuntimeObjectDetection("./model/model.config")
+    return od_model
 
+# Currently supprots USB camera streams
+def create_video_handle():
     cap = cv2.VideoCapture(0)
     if cap is None:
-       print("Error: Input Camera device not found/detected")
+       print("\n Error: Input Camera device not found/detected")
+       print("\n Exisiting inference...")
        sys.exit(0)
 
-    # Reading widht and height details
-    img_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    img_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    return cap
 
-    while(True):
+def model_inference():
+
+    od_handle = create_objdet_handle("./model/model.config")
+
+    cap_handle = create_video_handle()
+
+    # Reading widht and height details
+    img_width = int(cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
+    img_height = int(cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    while cap_handle.isOpened():
        # Caputre frame-by-frame
-       ret, frame = cap.read()
-       predictions, infer_time = od_model.predict_image(frame)
+       ret, frame = cap_handle.read()
+       predictions, infer_time = od_handle.predict_image(frame)
 
        for d in predictions:
            x = int(d['boundingBox']['left'] * img_width)
@@ -114,11 +126,10 @@ def model_inference():
 
                cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-               cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
        cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
-       if od_model.disp == 1:
+       if od_handle.disp == 1:
            # Displaying the image
            cv2.imshow("Inference results", frame)
            if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -131,7 +142,7 @@ def model_inference():
        #print(predictions)
     
     # when everything done, release the capture
-    cap.release()
+    cap_handle.release()
     cv2.destroyAllWindows()
 
 def main():
