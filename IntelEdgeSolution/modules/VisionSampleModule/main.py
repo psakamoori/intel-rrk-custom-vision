@@ -132,8 +132,6 @@ def model_inference():
            start = (x,y)
            end = (x_end,y_end)
 
-           print("probability score : ", d['probability'])
-
            if 0.45 < d['probability']:
                frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
 
