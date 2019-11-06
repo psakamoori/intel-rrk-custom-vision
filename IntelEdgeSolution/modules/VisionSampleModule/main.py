@@ -76,7 +76,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-def create_objdet_handle(model_config_path):
+def create_object_handle(model_config_path):
 
     # Config file for Object Detection
     ret = os.path.exists('./model/model.config')
@@ -102,7 +102,7 @@ def create_video_handle():
 
 def model_inference():
 
-    od_handle = create_objdet_handle("./model/model.config")
+    od_handle = create_object_handle("./model/model.config")
 
     cap_handle = create_video_handle()
 

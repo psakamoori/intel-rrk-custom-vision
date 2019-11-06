@@ -3,7 +3,13 @@
 # full license information.
 
 import time
+import json
 from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHubMessageDispositionResult,IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult, IoTHubError
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 TO_UPSTREAM_MESSAGE_QUEUE_NAME = "ToUpstream"
 
@@ -14,6 +20,10 @@ MESSAGE_TIMEOUT = 10000
 
 # global counters
 send_callbacks = 0
+
+inference_files_zip_url =""
+msg_per_minute = 12
+object_of_interest = "ALL"
 
 class IotHubManager(object):
     TIMER_COUNT = 2
@@ -26,6 +36,7 @@ class IotHubManager(object):
 
         # set the time until a message times out
         self.client.set_option("messageTimeout", MESSAGE_TIMEOUT)
+        self.client.set_module_twin_callback(self.module_twin_callback, self)
 
     # sends a messager to the "ToUpstream" queue to be sent to hub
     def send_message_to_upstream(self, message):
@@ -66,3 +77,60 @@ class IotHubManager(object):
                                                 prop)                                                
         except Exception as ex:
             print("Exception in send_property: %s" % ex)
+    def module_twin_callback(self,update_state, payload, user_context):
+        global inference_files_zip_url
+        global msg_per_minute
+        global object_of_interest 
+        print ( "" )
+        print ( "Twin callback called with:" )
+        print ( "    updateStatus: %s" % update_state )
+        print ( "    payload: %s" % payload )
+        data = json.loads(payload)
+        setRestartCamera = False
+
+        if "desired" in data and "inference_files_zip_url" in data["desired"]:
+            #dst_folder="twin_provided_model"
+            inference_files_zip_url = data["desired"]["inference_files_zip_url"]
+            if inference_files_zip_url:
+                print("Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
+                #setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+            else:
+                print(inference_files_zip_url)
+        if "inference_files_zip_url" in data:
+            dst_folder="twin_provided_model"
+            inference_files_zip_url = data["inference_files_zip_url"]
+            if inference_files_zip_url:
+                print("Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
+                #setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                setRestartCamera = True
+            else:
+                print(inference_files_zip_url)
+
+        if "desired" in data and "object_of_interest" in data["desired"]:
+            object_of_interest = data["desired"]["object_of_interest"]
+            print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
+
+        if "object_of_interest" in data:
+            object_of_interest = data["object_of_interest"]
+            print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
+
+        if "desired" in data and "msg_per_minute" in data["desired"]:
+            msg_per_minute = data["desired"]["msg_per_minute"]
+            print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
+
+        if "msg_per_minute" in data:
+            msg_per_minute = data["msg_per_minute"]
+            print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
+
+            
+                
+        if setRestartCamera:
+            #
+            try:
+                logger.info("Restarting inferencing")
+                #ToDo add code to restart inference 
+                
+            except Exception as e:
+                logger.info("Got an issue during vam ON off after twin update")
+                logger.exception(e)
+                raise
