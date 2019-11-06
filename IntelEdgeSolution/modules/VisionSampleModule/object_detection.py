@@ -130,8 +130,8 @@ class ObjectDetection(object):
 
     def predict_image(self, image):
         inputs = self.preprocess(image)
-        prediction_outputs = self.predict(inputs)
-        return self.postprocess(prediction_outputs)
+        prediction_outputs, infer_time = self.predict(inputs)
+        return self.postprocess(prediction_outputs), infer_time
 
     def preprocess(self, image):
         if self.input_format == "RGB":
