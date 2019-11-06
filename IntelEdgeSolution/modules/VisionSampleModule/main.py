@@ -13,7 +13,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 
- Usage : $python3 main.py <customvision onnx model url>
+ Usage : $python3 main.py
  Author: Pradeep, Sakhamoori <pradeep.sakhamoori@intel.com>
  
 """
@@ -90,8 +90,9 @@ def create_objdet_handle(model_config_path):
     od_model = ONNXRuntimeObjectDetection("./model/model.config")
     return od_model
 
-# Currently supprots USB camera streams
 def create_video_handle():
+
+    # Currently supprots USB camera stream
     cap = cv2.VideoCapture(0)
     if cap is None:
        print("\n Error: Input Camera device not found/detected")
@@ -102,6 +103,7 @@ def create_video_handle():
 
 def model_inference():
 
+    print("\n Loading model and labels file ")
     od_handle = create_objdet_handle("./model/model.config")
 
     cap_handle = create_video_handle()
@@ -155,9 +157,13 @@ def model_inference():
 
        if od_handle.disp == 1:
            # Displaying the image
+           cv2.putText(frame, "Press 'r' to Refresh", (5,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
            cv2.imshow("Inference results", frame)
-           if cv2.waitKey(1) & 0xFF == ord('q'):
-              break
+           #if cv2.waitKey(1) & 0xFF == ord('q'):
+              #break
+           if cv2.waitKey(1) & 0xFF == ord('r'):
+              cap_handle.release()
+              model_inference()
        else:
           for d in predictions:
              print("Object(s) List: ", str(d['tagName'])) 
