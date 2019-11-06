@@ -23,9 +23,20 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
+import iot_hub_manager
 import time
+import datetime
 
 from object_detection import ObjectDetection
+from iot_hub_manager import IotHubManager
+from iothub_client import IoTHubTransportProvider, IoTHubError
+
+# Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+
+# Disable sending D2C messages to IoT Hub to prevent consuming network bandwidth
+iot_hub_manager = None
+
 
 class ONNXRuntimeObjectDetection(ObjectDetection):
     """Object Detection class for ONNX Runtime
@@ -99,6 +110,11 @@ def model_inference():
     img_width = int(cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
     img_height = int(cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+    #Adding iot support
+    # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+    IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+    iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
+
     while cap_handle.isOpened():
        # Caputre frame-by-frame
        ret, frame = cap_handle.read()
@@ -126,6 +142,16 @@ def model_inference():
 
                cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+
+               message = { "Label": out_label,
+                           "Confidence": score,
+                           "Position": [x, y, x_end, y_end],
+                           "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+               }
+
+               # Send message to IoT Hub
+               if iot_hub_manager is not None:
+                   iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
        cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
