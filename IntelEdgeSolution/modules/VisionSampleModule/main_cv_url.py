@@ -164,11 +164,12 @@ def model_inference(ob_handle, cap_handle):
             start = (x,y)
             end = (x_end,y_end)
 
-            frame = cv2.rectangle(frame, start, end, (255, 255, 255), 1)
-            out_label = str(d['tagName'])
-            score = str(int(d['probability']*100))
-            cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-            cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+           if 0.45 < d['probability']:
+              frame = cv2.rectangle(frame, start, end, (255, 255, 255), 1)
+              out_label = str(d['tagName'])
+              score = str(int(d['probability']*100))
+              cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+              cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
         cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
