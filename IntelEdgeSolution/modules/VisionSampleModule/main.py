@@ -23,6 +23,7 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
+import time
 
 from object_detection import ObjectDetection
 
@@ -58,10 +59,13 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
     def predict(self, preprocessed_image):
         inputs = np.array(preprocessed_image, dtype=np.float32)[np.newaxis,:,:,(2,1,0)] # RGB -> BGR
         inputs = np.ascontiguousarray(np.rollaxis(inputs, 3, 1))
+        start = time.time()
         outputs = self.session.run(None, {self.input_name: inputs})
-        return np.squeeze(outputs).transpose((1,2,0))
+        end = time.time()
+        inference_time = end - start
+        return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-def main():
+def model_inference():
     
     # Config file for Object Detection
     ret = os.path.exists('./model/model.config')
@@ -75,21 +79,18 @@ def main():
     od_model = ONNXRuntimeObjectDetection("./model/model.config")
 
     cap = cv2.VideoCapture(0)
+    if cap is None:
+       print("Error: Input Camera device not found/detected")
+       sys.exit(0)
+
     # Reading widht and height details
     img_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     img_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    if cap == None:
-       print("Error: Input Camera device not found/detected")
-
-    color = (255, 0 , 0)
-    thickness = 2
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 1
 
     while(True):
        # Caputre frame-by-frame
        ret, frame = cap.read()
-       predictions = od_model.predict_image(frame)
+       predictions, infer_time = od_model.predict_image(frame)
 
        for d in predictions:
            x = int(d['boundingBox']['left'] * img_width)
@@ -103,13 +104,19 @@ def main():
            start = (x,y)
            end = (x_end,y_end)
 
-           frame = cv2.rectangle(frame,start,end,color,thickness)
-           out_label = str(d['tagName'])
-           score = str(int(d['probability']*100))
-           frame = cv2.putText(frame, out_label, (x-5, y), font,
-                   fontScale, color, thickness, cv2.LINE_AA)
-           frame = cv2.putText(frame, score, (x+w-50, y), font,
-                   fontScale, color, thickness, cv2.LINE_AA)
+           print("probability score : ", d['probability'])
+
+           if 0.45 < d['probability']:
+               frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
+
+               out_label = str(d['tagName'])
+               score = str(int(d['probability']*100))
+
+               cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+               cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+               cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+
+       cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
        if od_model.disp == 1:
            # Displaying the image
@@ -126,6 +133,11 @@ def main():
     # when everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
+
+def main():
+
+    print(" Starting model inference... ")
+    model_inference()
 
 if __name__ == '__main__':
     main()
