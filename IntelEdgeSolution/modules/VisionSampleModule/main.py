@@ -82,7 +82,7 @@ class ObjDetInferenceInstance():
         self.od_handle = None
         self.cap_handle = None
 
-    def create_objdet_handle(self, model_config_path):
+    def create_object_handle(self, model_config_path):
         # Config file for Object Detection
         ret = os.path.exists(model_config_path)
 
@@ -107,10 +107,10 @@ class ObjDetInferenceInstance():
 
         print("\n Loading model and labels file ")
         if os.path.exists('./model/model.config'):
-           self.create_objdet_handle("./model/model.config")
+           self.create_object_handle("./model/model.config")
            print("\n Reading model.config file from model folder")
         else:
-           self.create_objdet_handle("model.config")
+           self.create_object_handle("model.config")
 
         self.create_video_handle()
 
