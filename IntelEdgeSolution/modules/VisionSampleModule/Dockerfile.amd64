@@ -32,5 +32,7 @@ COPY main.py ./
 COPY main_cv_url.py ./
 COPY object_detection.py ./
 COPY iot_hub_manager.py ./
+COPY utility.py ./
+COPY model/model.config ./
 COPY model model/
 CMD [ "python3", "-u", "./main.py" ]

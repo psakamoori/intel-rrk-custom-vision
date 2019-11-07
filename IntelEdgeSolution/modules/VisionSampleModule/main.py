@@ -23,7 +23,6 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
-import iot_hub_manager
 import time
 import datetime
 
@@ -102,7 +101,7 @@ def create_video_handle():
 
 def model_inference():
 
-    od_handle = create_object_handle("./model/model.config")
+    od_handle = create_object_handle("./model.config")
 
     cap_handle = create_video_handle()
 

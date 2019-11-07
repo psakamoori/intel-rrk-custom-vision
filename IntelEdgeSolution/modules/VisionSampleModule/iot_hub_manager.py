@@ -7,6 +7,8 @@ import json
 from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHubMessageDispositionResult,IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult, IoTHubError
 
 import logging
+
+from utility import get_file_zip
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -89,19 +91,19 @@ class IotHubManager(object):
         setRestartCamera = False
 
         if "desired" in data and "inference_files_zip_url" in data["desired"]:
-            #dst_folder="twin_provided_model"
+            dst_folder="./model"
             inference_files_zip_url = data["desired"]["inference_files_zip_url"]
             if inference_files_zip_url:
                 print("Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
-                #setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
             else:
                 print(inference_files_zip_url)
         if "inference_files_zip_url" in data:
-            dst_folder="twin_provided_model"
+            dst_folder="model"
             inference_files_zip_url = data["inference_files_zip_url"]
             if inference_files_zip_url:
                 print("Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
-                #setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
                 setRestartCamera = True
             else:
                 print(inference_files_zip_url)
