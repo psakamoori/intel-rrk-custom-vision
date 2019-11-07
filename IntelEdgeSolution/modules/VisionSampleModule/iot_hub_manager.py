@@ -7,6 +7,7 @@ import json
 from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHubMessageDispositionResult,IoTHubClientError, IoTHubTransportProvider, IoTHubClientResult, IoTHubError
 
 import logging
+import cv2
 
 from utility import get_file_zip
 logging.basicConfig(level=logging.INFO)
