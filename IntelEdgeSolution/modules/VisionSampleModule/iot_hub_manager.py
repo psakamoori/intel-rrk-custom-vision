@@ -66,3 +66,9 @@ class IotHubManager(object):
                                                 prop)                                                
         except Exception as ex:
             print("Exception in send_property: %s" % ex)
+
+
+    def restart_inference(self, infer_instance):
+        infer_instance.cap_handle.release()
+        cv2.destroyAllWindows()
+        infer.instance.module_inference()
