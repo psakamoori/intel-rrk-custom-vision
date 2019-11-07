@@ -84,15 +84,15 @@ class ObjDetInferenceInstance():
 
     def create_objdet_handle(self, model_config_path):
         # Config file for Object Detection
-        ret = os.path.exists('./model/model.config')
+        ret = os.path.exists(model_config_path)
 
         # Check for model.config file
         if ret is False:
-           print("\n ERROR: No model.config file found under model dir")
+           print("\n ERROR: model.config not found check root/model dir")
            print("\n Exiting inference....")
            sys.exit(0)
 
-        self.od_handle = ONNXRuntimeObjectDetection("./model/model.config")
+        self.od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
     def create_video_handle(self):
 
@@ -106,7 +106,11 @@ class ObjDetInferenceInstance():
     def model_inference(self):
 
         print("\n Loading model and labels file ")
-        self.create_objdet_handle("./model/model.config")
+        if os.path.exists('./model/model.config'):
+           self.create_objdet_handle("./model/model.config")
+           print("\n Reading model.config file from model folder")
+        else:
+           self.create_objdet_handle("model.config")
 
         self.create_video_handle()
 
