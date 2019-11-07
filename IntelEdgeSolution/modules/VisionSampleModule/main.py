@@ -76,109 +76,111 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-def create_objdet_handle(model_config_path):
+class ObjDetInferenceInstance():
 
-    # Config file for Object Detection
-    ret = os.path.exists('./model/model.config')
+    def __init__(self):
+        self.od_handle = None
+        self.cap_handle = None
 
-    # Check for model.config file
-    if ret is False:
-       print("\n ERROR: No model.config file found under model dir")
-       print("\n Exiting inference....")
-       sys.exit(0)
+    def create_objdet_handle(self, model_config_path):
+        # Config file for Object Detection
+        ret = os.path.exists('./model/model.config')
 
-    od_model = ONNXRuntimeObjectDetection("./model/model.config")
-    return od_model
+        # Check for model.config file
+        if ret is False:
+           print("\n ERROR: No model.config file found under model dir")
+           print("\n Exiting inference....")
+           sys.exit(0)
 
-def create_video_handle():
+        self.od_handle = ONNXRuntimeObjectDetection("./model/model.config")
 
-    # Currently supprots USB camera stream
-    cap = cv2.VideoCapture(0)
-    if cap is None:
-       print("\n Error: Input Camera device not found/detected")
-       print("\n Exisiting inference...")
-       sys.exit(0)
+    def create_video_handle(self):
 
-    return cap
+        # Currently supprots USB camera stream
+        self.cap_handle = cv2.VideoCapture(0)
+        if self.cap_handle is None:
+           print("\n Error: Input Camera device not found/detected")
+           print("\n Exisiting inference...")
+           sys.exit(0)
 
-def model_inference():
+    def model_inference(self):
 
-    print("\n Loading model and labels file ")
-    od_handle = create_objdet_handle("./model/model.config")
+        print("\n Loading model and labels file ")
+        self.create_objdet_handle("./model/model.config")
 
-    cap_handle = create_video_handle()
+        self.create_video_handle()
 
-    # Reading widht and height details
-    img_width = int(cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
-    img_height = int(cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Reading widht and height details
+        img_width = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
+        img_height = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    #Adding iot support
-    # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
-    IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-    iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
+        # Adding iot support
+        # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+        IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
 
-    while cap_handle.isOpened():
-       # Caputre frame-by-frame
-       ret, frame = cap_handle.read()
-       predictions, infer_time = od_handle.predict_image(frame)
+        while self.cap_handle.isOpened():
+            # Caputre frame-by-frame
+            ret, frame = self.cap_handle.read()
+            predictions, infer_time = self.od_handle.predict_image(frame)
 
-       for d in predictions:
-           x = int(d['boundingBox']['left'] * img_width)
-           y = int(d['boundingBox']['top'] * img_height)
-           w = int(d['boundingBox']['width'] * img_width)
-           h = int(d['boundingBox']['height'] * img_height)
+            for d in predictions:
+                x = int(d['boundingBox']['left'] * img_width)
+                y = int(d['boundingBox']['top'] * img_height)
+                w = int(d['boundingBox']['width'] * img_width)
+                h = int(d['boundingBox']['height'] * img_height)
 
-           x_end = x+w
-           y_end = y+h
+                x_end = x+w
+                y_end = y+h
 
-           start = (x,y)
-           end = (x_end,y_end)
+                start = (x,y)
+                end = (x_end,y_end)
 
-           if 0.45 < d['probability']:
-               frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
+                if 0.45 < d['probability']:
+                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
 
-               out_label = str(d['tagName'])
-               score = str(int(d['probability']*100))
+                    out_label = str(d['tagName'])
+                    score = str(int(d['probability']*100))
 
-               cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-               cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                    cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                    cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
-               message = { "Label": out_label,
-                           "Confidence": score,
-                           "Position": [x, y, x_end, y_end],
-                           "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-               }
+                    message = { "Label": out_label,
+                                "Confidence": score,
+                                "Position": [x, y, x_end, y_end],
+                                "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    }
 
-               # Send message to IoT Hub
-               if iot_hub_manager is not None:
-                   iot_hub_manager.send_message_to_upstream(json.dumps(message))
+                    # Send message to IoT Hub
+                    if iot_hub_manager is not None:
+                        iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
-       cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
-       if od_handle.disp == 1:
-           # Displaying the image
-           cv2.putText(frame, "Press 'r' to Refresh", (5,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
-           cv2.imshow("Inference results", frame)
-           #if cv2.waitKey(1) & 0xFF == ord('q'):
-              #break
-           if cv2.waitKey(1) & 0xFF == ord('r'):
-              cap_handle.release()
-              model_inference()
-       else:
-          for d in predictions:
-             print("Object(s) List: ", str(d['tagName'])) 
+            if self.od_handle.disp == 1:
+                # Displaying the image
+                cv2.putText(frame, "Press 'r' on keyboard to refresh", (5,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
+                cv2.imshow("Inference results", frame)
+                #if cv2.waitKey(1) & 0xFF == ord('q'):
+                   #break
+                if cv2.waitKey(1) & 0xFF == ord('r'):
+                    #self.cap_handle.release()
+                    #self.model_inference()
+                    iot_hub_manager.restart_inferance(od_handle)
+            else:
+                for d in predictions:
+                    print("Object(s) List: ", str(d['tagName']))
 
-       #input("Press Enter to continue...")
-       #print(predictions)
-    
-    # when everything done, release the capture
-    cap_handle.release()
-    cv2.destroyAllWindows()
+        # when everything done, release the capture
+        self.cap_handle.release()
+        cv2.destroyAllWindows()
 
 def main():
 
+    infer_obj = ObjDetInferenceInstance()
+
     print(" Starting model inference... ")
-    model_inference()
+    infer_obj.model_inference()
 
 if __name__ == '__main__':
     main()
