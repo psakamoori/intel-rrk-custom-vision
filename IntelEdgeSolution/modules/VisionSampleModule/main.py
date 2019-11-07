@@ -117,7 +117,7 @@ class ObjDetInferenceInstance():
         # Adding iot support
         # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
         IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
+        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self.od_handle)
 
         while self.cap_handle.isOpened():
             # Caputre frame-by-frame
@@ -159,14 +159,13 @@ class ObjDetInferenceInstance():
 
             if self.od_handle.disp == 1:
                 # Displaying the image
-                cv2.putText(frame, "Press 'r' on keyboard to refresh", (5,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
                 cv2.imshow("Inference results", frame)
-                #if cv2.waitKey(1) & 0xFF == ord('q'):
-                   #break
-                if cv2.waitKey(1) & 0xFF == ord('r'):
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                   break
+                #if cv2.waitKey(1) & 0xFF == ord('r'):
                     #self.cap_handle.release()
                     #self.model_inference()
-                    iot_hub_manager.restart_inferance(od_handle)
+                    #iot_hub_manager.restart_inferance(od_handle)
             else:
                 for d in predictions:
                     print("Object(s) List: ", str(d['tagName']))
