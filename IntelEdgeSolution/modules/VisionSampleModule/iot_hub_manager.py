@@ -31,7 +31,7 @@ object_of_interest = "ALL"
 class IotHubManager(object):
     TIMER_COUNT = 2
 
-    def __init__(self, protocol, od_handle):
+    def __init__(self, protocol, od_handle, cap_handle):
         print("Creating IoT Hub manager")
         self.client_protocol = protocol
         self.client = IoTHubModuleClient()
@@ -41,6 +41,7 @@ class IotHubManager(object):
         self.client.set_option("messageTimeout", MESSAGE_TIMEOUT)
         self.client.set_module_twin_callback(self.module_twin_callback, self)
         self.infer_instance = od_handle
+        self.cam_handle = cap_handle
 
     # sends a messager to the "ToUpstream" queue to be sent to hub
     def send_message_to_upstream(self, message):
@@ -82,10 +83,10 @@ class IotHubManager(object):
         except Exception as ex:
             print("Exception in send_property: %s" % ex)
 
-    def restart_inferance(self, infer_instance):
-        infer_instance.cap_handle.release()
+    def restart_inferance(self):
+        self.cam_handle.release()
         cv2.destroyAllWindows()
-        infer_instance.module_inference()
+        self.module_inference()
 
     def module_twin_callback(self,update_state, payload, user_context):
         global inference_files_zip_url
@@ -136,7 +137,7 @@ class IotHubManager(object):
             #
             try:
                 logger.info("Restarting inferencing")
-                restart_inferance(infer_instance)
+                restart_inferance()
 
             except Exception as e:
                 logger.info("Got an issue during vam ON off after twin update")

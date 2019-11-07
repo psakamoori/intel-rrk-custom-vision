@@ -117,7 +117,7 @@ class ObjDetInferenceInstance():
         # Adding iot support
         # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
         IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self.od_handle)
+        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self.od_handle, self.cap_handle)
 
         while self.cap_handle.isOpened():
             # Caputre frame-by-frame
