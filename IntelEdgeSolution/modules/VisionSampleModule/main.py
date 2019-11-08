@@ -55,8 +55,8 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.anchors = np.array(data["Anchors"])
         self.iou_threshold = data["IOU_THRESHOLD"]
         self.input_format = str(data["InputFormat"])
-
-        #self.od_handle = None
+        self.img_width = 0
+        self.img_height = 0
         self.cap_handle = None
 
         with open(self.label_filename, 'r') as f:
@@ -79,75 +79,55 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-        #self.od_handle = None
-        self.cap_handle = None
-
-    #def create_object_handle(self, model_config_path):
-    #    # Config file for Object Detection
-    #    ret = os.path.exists(model_config_path)
-    #    # Check for model.config file
-    #    if ret is False:
-    #       print("\n ERROR: model.config not found check root/model dir")
-    #       print("\n Exiting inference....")
-    #       sys.exit(0)
-
-    #    self.od_handle = ONNXRuntimeObjectDetection(model_config_path)
-
     def create_video_handle(self):
 
         # Currently supprots USB camera stream
         self.cap_handle = cv2.VideoCapture(0)
+
         if self.cap_handle is None:
            print("\n Error: Input Camera device not found/detected")
            print("\n Exisiting inference...")
            sys.exit(0)
 
-    def model_inference(self):
-        #print("\n Loading model and labels file ")
-        #if os.path.exists('./model/model.config'):
-        #   self.create_object_handle("./model/model.config")
-        #   print("\n Reading model.config file from model folder")
-        #else:
-        #   self.create_object_handle("model.config")
-        #   print("\n Reading model.config file from default base folder")
+        # Reading widht and height details
+        self.img_width = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.img_height = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        model_config_path = ""
-
-        if os.path.exists('./model/model.config'):
-          print("\n Reading model.config file from model folder")
-          model_config_path = "./model/model.config"
-        elif os.path.exists("model.config"):
-          model_config_path = "model.config"
-          self.__init__("model.config")
-          print("\n Reading model.config file from default base folder")
-        else:
-          print("\n ERROR: model.config not found check root/model dir")
-          print("\n Exiting inference....")
-          sys.exit(0)
-
-        self.__init__(model_config_path)
+    def model_inference(self, iot_hub_manager):
 
         self.create_video_handle()
 
-        # Reading widht and height details
-        img_width = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
-        img_height = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        # Adding iot support
-        # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
-        IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self, self.cap_handle)
-
         while self.cap_handle.isOpened():
+
+            if iot_hub_manager.setRestartCamera == True:
+               self.cap_handle.release()
+               cv2.destroyAllWindows()
+               iot_hub_manager.setRestartCamera = False
+
+               if os.path.exists('./model/model.config'):
+                   print("\n Reading model.config file from model folder")
+                   config_filename = "./model/model.config"
+                   self.__init__(config_filename)
+                   self.create_video_handle()
+               elif os.path.exists("model.config"):
+                   config_filename = "model.config"
+                   print("\n Reading model.config file from default base folder")
+                   self.__init__(config_filename)
+                   self.create_video_handle()
+               else:
+                   print("\n ERROR: model.config not found check root/model dir")
+                   print("\n Exiting inference....")
+                   sys.exit(0)
+
             # Caputre frame-by-frame
             ret, frame = self.cap_handle.read()
             predictions, infer_time = self.predict_image(frame)
 
             for d in predictions:
-                x = int(d['boundingBox']['left'] * img_width)
-                y = int(d['boundingBox']['top'] * img_height)
-                w = int(d['boundingBox']['width'] * img_width)
-                h = int(d['boundingBox']['height'] * img_height)
+                x = int(d['boundingBox']['left'] * self.img_width)
+                y = int(d['boundingBox']['top'] * self.img_height)
+                w = int(d['boundingBox']['width'] * self.img_width)
+                h = int(d['boundingBox']['height'] * self.img_height)
 
                 x_end = x+w
                 y_end = y+h
@@ -181,27 +161,22 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                 cv2.imshow("Inference results", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                    break
-                #if cv2.waitKey(1) & 0xFF == ord('r'):
-                    #self.cap_handle.release()
-                    #self.model_inference()
-                    #iot_hub_manager.restart_inferance(od_handle)
-            else:
-                for d in predictions:
-                    print("Object(s) List: ", str(d['tagName']))
 
         # when everything done, release the capture
         self.cap_handle.release()
         cv2.destroyAllWindows()
 
 def main():
-
-
     model_config_path = "./model/model.config"
-
     od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
-    print(" Starting model inference... ")
-    od_handle.model_inference()
+    # Adding iot support
+    # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
+    IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
+    iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
+
+    #print(" Starting model inference... ")
+    od_handle.model_inference(iot_hub_manager)
 
 if __name__ == '__main__':
     main()
