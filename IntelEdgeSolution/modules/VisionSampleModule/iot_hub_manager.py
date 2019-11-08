@@ -8,7 +8,7 @@ from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHu
 
 import logging
 import cv2
-from main import ObjDetInferenceInstance
+
 from utility import get_file_zip
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ inference_files_zip_url =""
 msg_per_minute = 12
 object_of_interest = "ALL"
 
-class IotHubManager(ObjDetInferenceInstance):
+class IotHubManager(object):
     TIMER_COUNT = 2
 
     def __init__(self, protocol, od_handle, cap_handle):
@@ -86,7 +86,7 @@ class IotHubManager(ObjDetInferenceInstance):
     def restart_inferance(self,ObjDetInferenceInstance):
         self.cam_handle.release()
         cv2.destroyAllWindows()
-        ObjDetInferenceInstance.module_inference()
+        self.infer_instance.module_inference()
 
     def module_twin_callback(self,update_state, payload, user_context):
         global inference_files_zip_url

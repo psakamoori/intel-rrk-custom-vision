@@ -56,6 +56,9 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.iou_threshold = data["IOU_THRESHOLD"]
         self.input_format = str(data["InputFormat"])
 
+        #self.od_handle = None
+        self.cap_handle = None
+
         with open(self.label_filename, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
 
@@ -76,23 +79,20 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-class ObjDetInferenceInstance():
-
-    def __init__(self):
-        self.od_handle = None
+        #self.od_handle = None
         self.cap_handle = None
 
-    def create_object_handle(self, model_config_path):
-        # Config file for Object Detection
-        ret = os.path.exists(model_config_path)
+    #def create_object_handle(self, model_config_path):
+    #    # Config file for Object Detection
+    #    ret = os.path.exists(model_config_path)
 
-        # Check for model.config file
-        if ret is False:
-           print("\n ERROR: model.config not found check root/model dir")
-           print("\n Exiting inference....")
-           sys.exit(0)
+    #    # Check for model.config file
+    #    if ret is False:
+    #       print("\n ERROR: model.config not found check root/model dir")
+    #       print("\n Exiting inference....")
+    #       sys.exit(0)
 
-        self.od_handle = ONNXRuntimeObjectDetection(model_config_path)
+    #    self.od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
     def create_video_handle(self):
 
@@ -104,13 +104,13 @@ class ObjDetInferenceInstance():
            sys.exit(0)
 
     def model_inference(self):
-        print("\n Loading model and labels file ")
-        if os.path.exists('./model/model.config'):
-           self.create_object_handle("./model/model.config")
-           print("\n Reading model.config file from model folder")
-        else:
-           self.create_object_handle("model.config")
-           print("\n Reading model.config file from default base folder")
+        #print("\n Loading model and labels file ")
+        #if os.path.exists('./model/model.config'):
+        #   self.create_object_handle("./model/model.config")
+        #   print("\n Reading model.config file from model folder")
+        #else:
+        #   self.create_object_handle("model.config")
+        #   print("\n Reading model.config file from default base folder")
 
         self.create_video_handle()
 
@@ -121,12 +121,12 @@ class ObjDetInferenceInstance():
         # Adding iot support
         # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
         IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self.od_handle, self.cap_handle)
+        iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL, self, self.cap_handle)
 
         while self.cap_handle.isOpened():
             # Caputre frame-by-frame
             ret, frame = self.cap_handle.read()
-            predictions, infer_time = self.od_handle.predict_image(frame)
+            predictions, infer_time = self.predict_image(frame)
 
             for d in predictions:
                 x = int(d['boundingBox']['left'] * img_width)
@@ -161,7 +161,7 @@ class ObjDetInferenceInstance():
 
             cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
-            if self.od_handle.disp == 1:
+            if self.disp == 1:
                 # Displaying the image
                 cv2.imshow("Inference results", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -180,10 +180,25 @@ class ObjDetInferenceInstance():
 
 def main():
 
-    infer_obj = ObjDetInferenceInstance()
+    model_config_path = ""
+
+    if os.path.exists('./model/model.config'):
+       self.create_object_handle("./model/model.config")
+       print("\n Reading model.config file from model folder")
+       model_config_path = "./model/model.config"
+    elif os.path.exists("model.config"):
+       self.create_object_handle("model.config")
+       model_config_path = "model.config"
+       print("\n Reading model.config file from default base folder")
+    else:
+       print("\n ERROR: model.config not found check root/model dir")
+       print("\n Exiting inference....")
+       sys.exit(0)
+
+    od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
     print(" Starting model inference... ")
-    infer_obj.model_inference()
+    od_handle.model_inference()
 
 if __name__ == '__main__':
     main()
