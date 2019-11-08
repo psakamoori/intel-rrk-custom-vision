@@ -85,7 +85,6 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
     #def create_object_handle(self, model_config_path):
     #    # Config file for Object Detection
     #    ret = os.path.exists(model_config_path)
-
     #    # Check for model.config file
     #    if ret is False:
     #       print("\n ERROR: model.config not found check root/model dir")
