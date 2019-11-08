@@ -112,6 +112,22 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         #   self.create_object_handle("model.config")
         #   print("\n Reading model.config file from default base folder")
 
+        model_config_path = ""
+
+        if os.path.exists('./model/model.config'):
+          print("\n Reading model.config file from model folder")
+          model_config_path = "./model/model.config"
+        elif os.path.exists("model.config"):
+          model_config_path = "model.config"
+          self.__init__("model.config")
+          print("\n Reading model.config file from default base folder")
+        else:
+          print("\n ERROR: model.config not found check root/model dir")
+          print("\n Exiting inference....")
+          sys.exit(0)
+
+        self.__init__(model_config_path)
+
         self.create_video_handle()
 
         # Reading widht and height details
@@ -180,20 +196,8 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
 def main():
 
-    model_config_path = ""
 
-    if os.path.exists('./model/model.config'):
-       self.create_object_handle("./model/model.config")
-       print("\n Reading model.config file from model folder")
-       model_config_path = "./model/model.config"
-    elif os.path.exists("model.config"):
-       self.create_object_handle("model.config")
-       model_config_path = "model.config"
-       print("\n Reading model.config file from default base folder")
-    else:
-       print("\n ERROR: model.config not found check root/model dir")
-       print("\n Exiting inference....")
-       sys.exit(0)
+    model_config_path = "./model/model.config"
 
     od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
