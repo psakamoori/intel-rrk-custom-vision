@@ -104,13 +104,13 @@ class ObjDetInferenceInstance():
            sys.exit(0)
 
     def model_inference(self):
-
         print("\n Loading model and labels file ")
         if os.path.exists('./model/model.config'):
            self.create_object_handle("./model/model.config")
            print("\n Reading model.config file from model folder")
         else:
            self.create_object_handle("model.config")
+           print("\n Reading model.config file from default base folder")
 
         self.create_video_handle()
 

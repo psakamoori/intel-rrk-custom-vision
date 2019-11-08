@@ -8,7 +8,7 @@ from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHu
 
 import logging
 import cv2
-
+from main import ObjDetInferenceInstance
 from utility import get_file_zip
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ inference_files_zip_url =""
 msg_per_minute = 12
 object_of_interest = "ALL"
 
-class IotHubManager(object):
+class IotHubManager(ObjDetInferenceInstance):
     TIMER_COUNT = 2
 
     def __init__(self, protocol, od_handle, cap_handle):
@@ -83,10 +83,10 @@ class IotHubManager(object):
         except Exception as ex:
             print("Exception in send_property: %s" % ex)
 
-    def restart_inferance(self):
+    def restart_inferance(self,ObjDetInferenceInstance):
         self.cam_handle.release()
         cv2.destroyAllWindows()
-        self.module_inference()
+        ObjDetInferenceInstance.module_inference()
 
     def module_twin_callback(self,update_state, payload, user_context):
         global inference_files_zip_url
@@ -137,7 +137,7 @@ class IotHubManager(object):
             #
             try:
                 logger.info("Restarting inferencing")
-                restart_inferance()
+                self.restart_inferance()
 
             except Exception as e:
                 logger.info("Got an issue during vam ON off after twin update")
