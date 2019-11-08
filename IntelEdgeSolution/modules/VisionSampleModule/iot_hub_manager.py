@@ -83,10 +83,10 @@ class IotHubManager(object):
         except Exception as ex:
             print("Exception in send_property: %s" % ex)
 
-    def restart_inferance(self):
+    def restart_inferance(self,ObjDetInferenceInstance):
         self.cam_handle.release()
         cv2.destroyAllWindows()
-        self.module_inference()
+        self.infer_instance.module_inference()
 
     def module_twin_callback(self,update_state, payload, user_context):
         global inference_files_zip_url
@@ -137,7 +137,7 @@ class IotHubManager(object):
             #
             try:
                 logger.info("Restarting inferencing")
-                restart_inferance()
+                self.restart_inferance()
 
             except Exception as e:
                 logger.info("Got an issue during vam ON off after twin update")
