@@ -81,11 +81,24 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
     def create_video_handle(self):
 
+        web_cam_found = False
+        for i in range(4):
+          if os.path.exists("/dev/video"+str(i)):
+             web_cam_found = True
+             break
+
+        if web_cam_found:
+           usb_video_path = "/dev/video"+str(i)
+        else:
+           print("\n Error: Input Camera device not found/detected")
+           print("\n Exisiting inference...")
+           sys.exit(0)
+
         # Currently supprots USB camera stream
-        self.cap_handle = cv2.VideoCapture(0)
+        self.cap_handle = cv2.VideoCapture(usb_video_path)
 
         if self.cap_handle is None:
-           print("\n Error: Input Camera device not found/detected")
+           print("\n Warning: Camera device is busy..")
            print("\n Exisiting inference...")
            sys.exit(0)
 
