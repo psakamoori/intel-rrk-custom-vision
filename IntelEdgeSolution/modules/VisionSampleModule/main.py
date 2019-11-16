@@ -27,16 +27,10 @@ import iot_hub_manager
 import time
 import datetime
 
-from object_detection import ObjectDetection
+from VideoStream import VideoStream
+from predict import ObjectDetection
 from iot_hub_manager import IotHubManager
 from iothub_client import IoTHubTransportProvider, IoTHubError
-
-# Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
-IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-
-# Disable sending D2C messages to IoT Hub to prevent consuming network bandwidth
-iot_hub_manager = None
-
 
 class ONNXRuntimeObjectDetection(ObjectDetection):
     """Object Detection class for ONNX Runtime
@@ -58,6 +52,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.img_width = 0
         self.img_height = 0
         self.cap_handle = None
+        self.vs = None
 
         with open(self.label_filename, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
@@ -94,26 +89,22 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
            print("\n Exisiting inference...")
            sys.exit(0)
 
-        # Currently supprots USB camera stream
-        self.cap_handle = cv2.VideoCapture(usb_video_path)
-
-        if self.cap_handle is None:
-           print("\n Warning: Camera device is busy..")
-           print("\n Exisiting inference...")
-           sys.exit(0)
+        self.vs = VideoStream(usb_video_path).start()
 
         # Reading widht and height details
-        self.img_width = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.img_height = int(self.cap_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.img_height = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     def model_inference(self, iot_hub_manager):
 
         self.create_video_handle()
 
-        while self.cap_handle.isOpened():
+        #while self.cap_handle.isOpened():
+        while self.vs.stream.isOpened():
 
             if iot_hub_manager.setRestartCamera == True:
-               self.cap_handle.release()
+               #self.cap_handle.release()
+               self.vs.stream.release()
                cv2.destroyAllWindows()
                iot_hub_manager.setRestartCamera = False
 
@@ -133,7 +124,8 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                    sys.exit(0)
 
             # Caputre frame-by-frame
-            ret, frame = self.cap_handle.read()
+            frame = self.vs.read()
+
             predictions, infer_time = self.predict_image(frame)
 
             for d in predictions:
@@ -176,7 +168,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                    break
 
         # when everything done, release the capture
-        self.cap_handle.release()
+        self.vs.__exit__()
         cv2.destroyAllWindows()
 
 def main():
