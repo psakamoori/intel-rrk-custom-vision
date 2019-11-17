@@ -18,11 +18,24 @@
 # Author: Pradeep, Sakhamoori
 # Date  : 10/27/2019
 
+# Install dependencies
+apt-get update
+apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+
 # Install IoT Edge Runtime - Ubuntu16.04
 ret=$(curl https://packages.microsoft.com/config/ubuntu/16.04/multiarch/prod.list > ./microsoft-prod.list)
 
+# Download and install the Microsoft signing key
+ret=$(curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null)
+
 # Generated list 
 ret=$(cp ./microsoft-prod.list /etc/apt/sources.list.d/)
+
+AZ_REPO=$(lsb_release -cs)
+ret=$(echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list)
+
+apt-get update
+apt-get install azure-cli
 
 # Install container runtime and dependencies 
 apt-get update
