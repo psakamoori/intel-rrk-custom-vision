@@ -146,9 +146,9 @@ class iot_edge_resoruce_create():
            self.logs(" WANT TO CREATE NEW EDGE DEVICE [yes/no]")
            new_edge_flag = input()
            if new_edge_flag == 'yes':
-              create_new_iot_edge_device(new_edge_flag)
+              self.create_new_iot_edge_device(new_edge_flag)
         else:
-           create_new_iot_edge_device(new_edge_flag)
+           self.create_new_iot_edge_device(new_edge_flag)
 
         self.get_device_string()
 
