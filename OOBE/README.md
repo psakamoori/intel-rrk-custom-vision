@@ -29,4 +29,8 @@ Instructions to install Azure IoT Edge Runtime and Create Azure IoT Resoruce
   - Copy "device connection string" from Step 2 to "sudo nano /etc/iotedge/config.yaml"
      - Replace this "<ADD DEVICE CONNECTION STRING HERE"> with device string looks like below 
        Ex: "HostName=devinwonIoTHub.azure-devices.net;DeviceId=AIVisionDemo1;SharedAccessKey=DBnciasdasdasdasd/7iRasdasfasfoxasmqhtqa7X0nTk7o=""
+       
+## Step 4: restart iotedge runtime
+
+- sudo systemctl restart iotedge
 
