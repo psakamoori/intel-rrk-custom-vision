@@ -33,167 +33,178 @@
 import sys
 import os, json
 import subprocess
+import datetime
 
 from getpass import getpass
 
-global sub_id_name
-global rs_grp_name, hub_name, dev_name
+class iot_edge_resoruce_create():
+    def __init__(self):
+        self.rs_grp_name = None
+        self.hub_name = None
+        self.dev_name = None
+        self.dev_str = None
+        self.sub_id_name = None
+        self.az_acr_name = None
 
-def main(username):
-    global sub_id_name
-    passwd = getpass("Enter Azure account login password: ")
-    #subprocess.call(['az', 'login', '-u', username, '-p', passwd])
-    proc = subprocess.Popen(['az', 'login', '-u', username, '-p', passwd],
-                                                stdout=subprocess.PIPE)
-    (sub_id, err) = proc.communicate()
-    sub_id = sub_id.decode('utf-8')
-    sub_id_ = json.loads(sub_id)
-    sub_id_name = sub_id_[0]['id']
+    def azure_ac_login(self, username):
+        passwd = getpass("Enter Azure account login password: ")
+        #subprocess.call(['az', 'login', '-u', username, '-p', passwd])
+        proc = subprocess.Popen(['az', 'login', '-u', username, '-p', passwd],
+                                              stdout=subprocess.PIPE)
+        (sub_id, err) = proc.communicate()
+        sub_id = sub_id.decode('utf-8')
+        sub_id_ = json.loads(sub_id)
+        self.sub_id_name = sub_id_[0]['id']
 
-    #sub_id_name = sub_id_name.split('/')
-    #print("sub_id_name", sub_id_name)
+        self.check_for_res_group()
 
-    check_for_res_group()
+    def check_for_res_group(self):
+        # Check if resoruce group exists; if not create one
+        proc = subprocess.Popen(['az', 'group', 'list'], 
+                                   stdout=subprocess.PIPE)
 
-def check_for_res_group():
-   global rs_grp_name
-   # Check if resoruce group exists; if not create one
-   proc = subprocess.Popen(['az', 'group', 'list'], 
-                               stdout=subprocess.PIPE)
+        (rs_group, err) = proc.communicate()
+        rs_group = rs_group.decode('utf-8')
 
-   (rs_group, err) = proc.communicate()
-   rs_group = rs_group.decode('utf-8')
+        # check length of rs_group array; empty array length will be 1
+        if len(rs_group) > 3:
+           rs_grp = json.loads(rs_group)
+           self.rs_grp_name = rs_grp[0]['name']
+           self.logs(" Resource Group Found ")
+           self.logs("Resoruce Group INFO = " + str(rs_group))
+           self.logs("Resource Group NAME = " + str(rs_grp[0]['name']))
+        else:
+           self.logs(" ***Warning: No Resource Found ")
+           self.logs(" Creating Resoruce Group ")
+           self.rs_grp_name = input("\n Enter Group Name: ")
+           reg_name = input("\n Enter Region Name: ")
+           subprocess.call(['az', 'group', 'create', '--name', self.rs_grp_name,
+                           '--location', reg_name])
+        self.check_for_hub()
 
-   # check length of rs_group array; empty array length will be 1
-   if len(rs_group) > 3:
-      rs_grp = json.loads(rs_group)
-      rs_grp_name = rs_grp[0]['name']
-      print("\n== Resource Group Found ==")
-      print("Resoruce Group INFO = ", rs_group)
-      print("Resource Group NAME = ", rs_grp[0]['name'])
-   else:
-      print("\n ***Warning: No Resource Found\n")
-      print("\n Creating Resoruce Group")
-      grp_name = input("\n Enter Group Name: ")
-      rs_grp_name = grp_name     
-      reg_name = input("\n Enter Region Name: ")
-      subprocess.call(['az', 'group', 'create', '--name', grp_name,
-                       '--location', reg_name])
-   check_for_hub()
+    def check_for_hub(self):
+        #Check if IoT Hub exists; if not create one
+        proc = subprocess.Popen(['az', 'iot', 'hub', 'list'],
+                                 stdout=subprocess.PIPE)
 
-def check_for_hub():
-    global rs_grp_name, hub_name
-    #Check if IoT Hub exists; if not create one
-    proc = subprocess.Popen(['az', 'iot', 'hub', 'list'],
-                            stdout=subprocess.PIPE)
+        (iot_hub, err) = proc.communicate()
+        iot_hub = iot_hub.decode('utf-8')
 
-    (iot_hub, err) = proc.communicate()
-    iot_hub = iot_hub.decode('utf-8')
+        if len(iot_hub) > 3:
+           iot_hub_ = json.loads(iot_hub)
+           self.hub_name = iot_hub_[0]['name']
+           self.logs(" IoT Hub Found ")
+           self.logs(" IoT Hub Name: " + str(self.hub_name))
+        else:
+           self.logs(" ***Warning: No IoT hub found ")
+           self.logs(" Creating IoT Hub ")
+           self.hub_name=input("\n Enter IoT Hub name: ")
+           subprocess.call(['az', 'iot', 'hub', 'create', '--resource-group',
+                             self.rs_grp_name, '--name', self.hub_name])
 
-    if len(iot_hub) > 3:
-       iot_hub_ = json.loads(iot_hub)
-       hub_name = iot_hub_[0]['name']
-       print("\n== IoT Hub Found ==")
-       print("\nIoT Hub Name: ", hub_name)
-    else:
-       print("\n ***Warning: No IoT hub found")
-       print("\n Creating IoT Hub")
-       hub_name=input("\n Enter IoT Hub name: ")
-       subprocess.call(['az', 'iot', 'hub', 'create', '--resource-group',
-                         rs_grp_name, '--name', hub_name])
-      
-       print("\n IoT Hub " + str(hub_name) + " Created")
+           self.logs(" IoT Hub " + str(self.hub_name) + " Created")
 
-    check_iot_edge()
+        self.check_iot_edge()
 
-def check_iot_edge():
-    global hub_name, dev_name
+    def create_new_iot_edge_device(self, new_edge_flag):
+
+        new_edge_flag = 'no'
+
+        if new_edge_flag == 'no':
+           self.logs(" *** Warning: IoT Edge deivce not found ")
+
+        self.logs(" Creating IoT Edge Device ")
+
+        self.dev_name = input("\n Enter IoT Edge device name: ")
+        subprocess.call(['az', 'iot', 'hub', 'device-identity', 'create',
+                     '--device-id', self.dev_name, '--hub-name', self.hub_name,
+                     '--edge-enabled'])
+
+        self.logs(" IoT Edge " + str(self.dev_name) + " created ")
+
+
+    def check_iot_edge(self):
  
-    print("\n Checking if IoT Hub ", str(hub_name), "exisits")
+        self.logs(" Checking if IoT Hub " + str(self.hub_name) + " present ")
 
-    # Adding Azure CLI extension
-    subprocess.call(['az', 'extension', 'add', '--name', 'azure-cli-iot-ext'])
+        # Adding Azure CLI extension
+        subprocess.call(['az', 'extension', 'add', '--name', 'azure-cli-iot-ext'])
+
+        # Check if IoT Edge present under IoT Hub
+        proc = subprocess.Popen(['az', 'iot', 'hub', 'device-identity', 'list',
+                                 '--hub-name', str(self.hub_name)], stdout=subprocess.PIPE)
+
+        (dev_id, err) = proc.communicate()
+        dev_id = dev_id.decode('utf-8')
+        self.logs(" hub_dev_id" + str(dev_id))
+
+        if len(dev_id) > 3:
+           self.logs(" IoT Edge device found ")
+           dev_id_ = json.loads(dev_id)
+           self.dev_name = dev_id_[0]['deviceId']
+           self.logs(" IoT Edge device: " + str(self.dev_name))
+           self.logs(" WANT TO CREATE NEW EDGE DEVICE [yes/no]")
+           new_edge_flag = input()
+           if new_edge_flag == 'yes':
+              create_new_iot_edge_device(new_edge_flag)
+        else:
+           create_new_iot_edge_device(new_edge_flag)
+
+        self.get_device_string()
+
+    def get_device_string(self):
+
+        self.logs(" Retrieve device connection string ")
+        proc = subprocess.Popen(['az', 'iot', 'hub', 'device-identity',
+                                'show-connection-string', '--device-id',
+                                 str(self.dev_name), '--hub-name', str(self.hub_name)],
+                                 stdout=subprocess.PIPE)
+
+        (dev_str, err) = proc.communicate()
+        self.dev_str = dev_str.decode('utf-8')
     
-    # Check if IoT Edge present under IoT Hub
-    proc = subprocess.Popen(['az', 'iot', 'hub', 'device-identity', 'list',
-                             '--hub-name', str(hub_name)],
-                             stdout=subprocess.PIPE)
+        self.logs(" dev_str: " + str(self.dev_str))
+        self.logs(" USE DEVICE CONNECTION STRING TO UPDATE-/etc/iotedge/config.yaml")
 
-    (dev_id, err) = proc.communicate()
-    dev_id = dev_id.decode('utf-8')
-    print("\n hub_dev_id", dev_id)
+        self.check_for_acr()
 
-    if len(dev_id) > 3:
-       print("\n == IoT Edge device found== ")
-       dev_id_ = json.loads(dev_id)
-       #print("dev_id_", dev_id_)
-       dev_name = dev_id_[0]['deviceId']
-       print("\n IoT Edge device: ", dev_name)
-    else:
-       print("\n*** Warning: IoT Edge deivce not Found")
-       print("\n Creating IoT Edge Device")
+    def check_for_acr(self):
 
-       dev_name = input("\n Enter IoT Edge device name: ")
-       subprocess.call(['az', 'iot', 'hub', 'device-identity', 'create',
-                        '--device-id', dev_name, '--hub-name', hub_name,
-                        '--edge-enabled'])
+        self.logs("Check for ACR - Azure Container Registry ")
+        proc = subprocess.Popen(['az', 'acr', 'list', '--resource-group', 
+                                str(self.rs_grp_name), '--subscription', 
+                                str(self.sub_id_name)], stdout=subprocess.PIPE)
 
-       print("\n IoT Edge " + str(dev_name) + " Created")
-    
-    get_device_string()
+        (az_acr, err) = proc.communicate()
+        az_acr = az_acr.decode('utf-8')
 
-def get_device_string():
-    global hub_name, dev_name
+        self.logs("az_acr" + str(az_acr))
 
-    print("\n Retrieve device connection string")
-    proc = subprocess.Popen(['az', 'iot', 'hub', 'device-identity',
-                             'show-connection-string', '--device-id',
-                              str(dev_name), '--hub-name', str(hub_name)],
-                              stdout=subprocess.PIPE)
+        if len(az_acr) > 3:
+           self.logs(" Azure ACR found ")
+           az_acr_ = json.loads(az_acr)
+           self.az_acr_name = az_acr_[0]['name']
+           self.logs(" ACR name: " + str(self.az_acr_name))
+        else:
+           self.logs("** Warning: AZure ACR not found ")
+           self.logs("Creating Azure ACR ")
 
-    (dev_str, err) = proc.communicate()
-    dev_str = dev_str.decode('utf-8')
-    
-    print("\n dev_str: ", dev_str)    
-    print("\n USE DEVICE CONNECTION STRING TO UPDATE-/etc/iotedge/config.yaml")
+           self.az_acr_name = input("\n Enter Azure ACR name : ")
+           subprocess.call(['az', 'acr', 'create', '-n', self.az_acr_name,
+                            '-g', self.rs_grp_name, '--sku', "standard"])
 
-    check_for_acr()
+           self.logs("Azure ACR " + str(self.az_acr_name) + " created ")
+           self.logs("IoT Resoruces ready to start deploying AI on Edge")
 
-def check_for_acr():
-    global sub_id_name, rs_grp_name
-
-    print("\n Check for ACR - Azure Container Registry")
-    proc = subprocess.Popen(['az', 'acr', 'list', '--resource-group', str(rs_grp_name),
-                     '--subscription', str(sub_id_name)], stdout=subprocess.PIPE)
-
-    (az_acr, err) = proc.communicate()
-    az_acr = az_acr.decode('utf-8')
-
-    print("az_acr", az_acr)
-
-    if len(az_acr) > 3:
-       print("\n == Azure ACR found == ")
-       az_acr_ = json.loads(az_acr)
-       #print("az_acr_", az_acr_)
-
-       acr_name = az_acr_[0]['name']
-       print("\n ACR name: ", acr_name)
-    else:
-       print("\n** Warning: AZure ACR not found ")
-       print("\n Creating Azure ACR ")
-
-       az_acr_name = input("\n Enter Azure ACR name : ")
-
-       subprocess.call(['az', 'acr', 'create', '-n', az_acr_name, '-g',
-                        rs_grp_name, '--sku', "standard"])
-
-       print("\n Azure ACR " + str(az_acr_name) + " Created ")
-
-    print("\n IoT Resoruces ready to start deploying AI on Edge")
+    def logs(self, txt):
+        print("["+ str(datetime.datetime.now()) + "]: " + str(txt))
 
 if __name__ == '__main__':
    if len(sys.argv) <= 1:
       print('USAGE: {} <Azure account username>'.format(sys.argv[0]))
    else:
-      main(sys.argv[1])
+      iot_ob = iot_edge_resoruce_create()
+      iot_ob.azure_ac_login(sys.argv[1])
+
+      #main(sys.argv[1])
 
