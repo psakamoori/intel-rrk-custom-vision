@@ -143,7 +143,7 @@ class iot_edge_resoruce_create():
            dev_id_ = json.loads(dev_id)
            self.dev_name = dev_id_[0]['deviceId']
            self.logs(" IoT Edge device: " + str(self.dev_name))
-           self.logs(" WANT TO CREATE NEW EDGE DEVICE [yes/no]")
+           self.logs(" WANT TO CREATE NEW IoT EDGE DEVICE [yes/no]")
            new_edge_flag = input()
            if new_edge_flag == 'yes':
               self.create_new_iot_edge_device(new_edge_flag)
