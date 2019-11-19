@@ -7,6 +7,7 @@ Instructions to install Azure IoT Edge Runtime and Create Azure IoT Resoruce
   
 ## Step 1: Install Azure IoT Edge Runtime & dependencies
 
+  - Open terminal and login as super user $sudo -s
   - Execute below script on Edge device 
     - $sudo ./az-iot-edge-runtime-install.sh 
 
