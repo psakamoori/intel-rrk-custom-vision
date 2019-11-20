@@ -32,6 +32,8 @@ from predict import ObjectDetection
 from iot_hub_manager import IotHubManager
 from iothub_client import IoTHubTransportProvider, IoTHubError
 
+from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
+
 class ONNXRuntimeObjectDetection(ObjectDetection):
     """Object Detection class for ONNX Runtime
     """
@@ -104,6 +106,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
             if iot_hub_manager.setRestartCamera == True:
                #self.cap_handle.release()
+               RunOptions.terminate = True
                self.vs.stream.release()
                cv2.destroyAllWindows()
                iot_hub_manager.setRestartCamera = False
