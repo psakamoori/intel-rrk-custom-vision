@@ -63,7 +63,7 @@
     "VisionSampleModule": {
       "properties.desired": {
         "inference_files_zip_url": "",
-        "msg_per_minute": 5,
+        "msg_per_minute": 10,
         "object_of_interest": "ALL"
       }
     }
