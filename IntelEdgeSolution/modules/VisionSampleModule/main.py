@@ -168,10 +168,11 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                    break
 
         # when everything done, release the capture
-        self.vs.__exit__()
+        self.vs.__exit__(None, None, None)
         cv2.destroyAllWindows()
 
 def main():
+
     model_config_path = "./model/model.config"
     od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
