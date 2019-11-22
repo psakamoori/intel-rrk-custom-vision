@@ -13,7 +13,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 
- Usage : $python3 main.py
  Author: Pradeep, Sakhamoori <pradeep.sakhamoori@intel.com>
  
 """
@@ -31,7 +30,6 @@ from VideoStream import VideoStream
 from predict import ObjectDetection
 from iot_hub_manager import IotHubManager
 from iothub_client import IoTHubTransportProvider, IoTHubError
-
 from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
 
 class ONNXRuntimeObjectDetection(ObjectDetection):
@@ -55,13 +53,17 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.img_height = 0
         self.cap_handle = None
         self.vs = None
+        self.session = None
 
+        #onnxruntime.capi.onnxruntime_pybind11_state.RunOptions = False
         with open(self.label_filename, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
 
         super(ONNXRuntimeObjectDetection, self).__init__(labels)
         print("\n Triggering Inference...")
+
         self.session = onnxruntime.InferenceSession(self.model_filename)
+
         print("\n Started Inference...")
         self.input_name = self.session.get_inputs()[0].name 
         if self.disp == 0:
@@ -101,15 +103,13 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
         self.create_video_handle()
 
-        #while self.cap_handle.isOpened():
         while self.vs.stream.isOpened():
 
             if iot_hub_manager.setRestartCamera == True:
                #self.cap_handle.release()
-               RunOptions.terminate = True
+               #RunOptions.terminate = True
                self.vs.stream.release()
                cv2.destroyAllWindows()
-               iot_hub_manager.setRestartCamera = False
 
                if os.path.exists('./model/model.config'):
                    print("\n Reading model.config file from model folder")
@@ -125,6 +125,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                    print("\n ERROR: model.config not found check root/model dir")
                    print("\n Exiting inference....")
                    sys.exit(0)
+               iot_hub_manager.setRestartCamera = False
 
             # Caputre frame-by-frame
             frame = self.vs.read()
