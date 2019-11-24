@@ -58,6 +58,14 @@ class iot_edge_resoruce_create():
 
         self.check_for_res_group()
 
+    def create_new_resource_group(self):
+
+        self.logs(" Creating Resoruce Group ")
+        self.rs_grp_name = input("\n Enter Group Name: ")
+        reg_name = input("\n Enter Region Name: ")
+        subprocess.call(['az', 'group', 'create', '--name', self.rs_grp_name,
+                           '--location', reg_name])
+
     def check_for_res_group(self):
         # Check if resoruce group exists; if not create one
         proc = subprocess.Popen(['az', 'group', 'list'], 
@@ -72,15 +80,25 @@ class iot_edge_resoruce_create():
            self.rs_grp_name = rs_grp[0]['name']
            self.logs(" Resource Group Found ")
            self.logs("Resoruce Group INFO = " + str(rs_group))
-           self.logs("Resource Group NAME = " + str(rs_grp[0]['name']))
+           self.logs("Resource Group NAME = " + str(self.rs_grp_name))
+           self.logs(" WANT TO CREATE NEW RESOURCE GROUP [yes/no]")
+           new_rs_grp_flag = input()
+           if new_rs_grp_flag == 'yes':
+              self.create_new_resource_group()
         else:
            self.logs(" ***Warning: No Resource Found ")
-           self.logs(" Creating Resoruce Group ")
-           self.rs_grp_name = input("\n Enter Group Name: ")
-           reg_name = input("\n Enter Region Name: ")
-           subprocess.call(['az', 'group', 'create', '--name', self.rs_grp_name,
-                           '--location', reg_name])
+           self.create_new_resource_group()
+
         self.check_for_hub()
+ 
+    def create_new_iot_hub(self):
+        self.logs(" Creating IoT Hub ")
+        self.hub_name=input("\n Enter IoT Hub name: ")
+        subprocess.call(['az', 'iot', 'hub', 'create', '--resource-group',
+                         self.rs_grp_name, '--name', self.hub_name])
+
+        self.logs(" IoT Hub " + str(self.hub_name) + " Created")
+
 
     def check_for_hub(self):
         #Check if IoT Hub exists; if not create one
@@ -95,24 +113,17 @@ class iot_edge_resoruce_create():
            self.hub_name = iot_hub_[0]['name']
            self.logs(" IoT Hub Found ")
            self.logs(" IoT Hub Name: " + str(self.hub_name))
+           self.logs(" WANT TO CREATE NEW IoT Hub [yes/no]")
+           new_iot_hub_flag = input()
+           if new_iot_hub_flag == 'yes':
+              self.create_new_iot_hub()
         else:
            self.logs(" ***Warning: No IoT hub found ")
-           self.logs(" Creating IoT Hub ")
-           self.hub_name=input("\n Enter IoT Hub name: ")
-           subprocess.call(['az', 'iot', 'hub', 'create', '--resource-group',
-                             self.rs_grp_name, '--name', self.hub_name])
-
-           self.logs(" IoT Hub " + str(self.hub_name) + " Created")
+           self.create_new_iot_hub()
 
         self.check_iot_edge()
 
-    def create_new_iot_edge_device(self, new_edge_flag):
-
-        new_edge_flag = 'no'
-
-        if new_edge_flag == 'no':
-           self.logs(" *** Warning: IoT Edge deivce not found ")
-
+    def create_new_iot_edge_device(self):
         self.logs(" Creating IoT Edge Device ")
 
         self.dev_name = input("\n Enter IoT Edge device name: ")
@@ -146,9 +157,10 @@ class iot_edge_resoruce_create():
            self.logs(" WANT TO CREATE NEW IoT EDGE DEVICE [yes/no]")
            new_edge_flag = input()
            if new_edge_flag == 'yes':
-              self.create_new_iot_edge_device(new_edge_flag)
+              self.create_new_iot_edge_device()
         else:
-           self.create_new_iot_edge_device(new_edge_flag)
+           self.logs(" *** Warning: IoT Edge deivce not found ")
+           self.create_new_iot_edge_device()
 
         self.get_device_string()
 
@@ -168,6 +180,17 @@ class iot_edge_resoruce_create():
 
         self.check_for_acr()
 
+    def create_new_acr(self):
+
+        self.logs("Creating Azure ACR ")
+
+        self.az_acr_name = input("\n Enter Azure ACR name : ")
+        subprocess.call(['az', 'acr', 'create', '-n', self.az_acr_name,
+                         '-g', self.rs_grp_name, '--sku', "standard"])
+
+        self.logs("Azure ACR " + str(self.az_acr_name) + " created ")
+        self.logs("IoT Resoruces ready to start deploying AI on Edge")
+
     def check_for_acr(self):
 
         self.logs("Check for ACR - Azure Container Registry ")
@@ -179,22 +202,20 @@ class iot_edge_resoruce_create():
         az_acr = az_acr.decode('utf-8')
 
         self.logs("az_acr" + str(az_acr))
+        new_acr_flag = None
 
         if len(az_acr) > 3:
            self.logs(" Azure ACR found ")
            az_acr_ = json.loads(az_acr)
            self.az_acr_name = az_acr_[0]['name']
            self.logs(" ACR name: " + str(self.az_acr_name))
+           self.logs(" WANT TO CREATE NEW ACR [yes/no]")
+           new_acr_flag = input()
+           if new_acr_flag == 'yes':
+              self.create_new_acr()
         else:
            self.logs("** Warning: AZure ACR not found ")
-           self.logs("Creating Azure ACR ")
-
-           self.az_acr_name = input("\n Enter Azure ACR name : ")
-           subprocess.call(['az', 'acr', 'create', '-n', self.az_acr_name,
-                            '-g', self.rs_grp_name, '--sku', "standard"])
-
-           self.logs("Azure ACR " + str(self.az_acr_name) + " created ")
-           self.logs("IoT Resoruces ready to start deploying AI on Edge")
+           self.create_new_acr()
 
     def logs(self, txt):
         print("["+ str(datetime.datetime.now()) + "]: " + str(txt))
