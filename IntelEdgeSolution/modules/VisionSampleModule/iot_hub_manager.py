@@ -133,6 +133,6 @@ class IotHubManager(object):
                 logger.info("Restarting inferencing")
 
             except Exception as e:
-                logger.info("Got an issue during vam ON off after twin update")
+                logger.info("Got an issue during cam ON off after twin update")
                 logger.exception(e)
                 raise
