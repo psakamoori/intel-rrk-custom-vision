@@ -26,7 +26,7 @@ ARG DEVICE
 
 COPY main.py ./
 COPY main_cv_url.py ./
-COPY predict.py ./
+COPY object_detection.py ./
 COPY VideoStream.py ./
 COPY iot_hub_manager.py ./
 COPY utility.py ./
