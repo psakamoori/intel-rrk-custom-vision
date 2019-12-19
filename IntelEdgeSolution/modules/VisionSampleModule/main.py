@@ -32,41 +32,88 @@ from iot_hub_manager import IotHubManager
 from iothub_client import IoTHubTransportProvider, IoTHubError
 from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
 
-class ONNXRuntimeObjectDetection(ObjectDetection):
+class ONNXRuntimeModelDeploy(ObjectDetection):
     """Object Detection class for ONNX Runtime
     """
-    def __init__(self, config_filename):
+    def __init__(self, manifest):
+        # Default system params
+        self.video_inp = "cam"
+        self.render = 1
 
-        f = open(config_filename)
-        data = json.load(f)
+        self.m_parser(manifest)
 
-        self.model_filename = str(data["MODEL_FILENAME"])
-        self.label_filename = str(data["LABELS_FILENAME"])
-        self.video_inp = str(data["Input"])
-        self.model_inp_width = int(data["ScaleWidth"])
-        self.model_inp_height = int(data["ScaleHeight"])
-        self.disp = int(data["display"])
-        self.anchors = np.array(data["Anchors"])
-        self.iou_threshold = data["IOU_THRESHOLD"]
-        self.input_format = str(data["InputFormat"])
+    def m_parser(self, manifest):
+
+        m_file = open(manifest)
+        data = json.load(m_file)
+
+         # cvexport manifest prameters
+        self.domain_type = str(data["DomainType"])
+
+        # default anchors
+        if str(self.domain_type) == "ObjectDetection":
+           # Model dependent params for ObjectDetection (default)
+           self.model_inp_width = 416
+           self.model_inp_height = 416
+           self.input_format = "RGB"
+           self.iou_threshold = 0.45
+           self.conf_threshold = 0.5
+           self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+           if "IouThreshold" in data:
+              self.iou_threshold = data["IouThreshold"]
+           if "ConfThreshold" in data:
+              self.conf_threshold = data["ConfThreshold"]
+
+        elif str(self.domain_type) == "ImageClassification":
+           # Model dependent params for ImageClassification (default)
+           self.mean_vec = [0.485, 0.456, 0.406],
+           self.stddev_vec = [0.229, 0.224, 0.225],
+           self.model_inp_width = 224
+           self.model_inp_height = 24
+           if "MeanVec" in data:
+              self.mean_vec = data["MeanVec"]
+           if "StddevVec" in data:
+              self.stddev_vec = data["StddevVec"]
+        else:
+           print("Error: No matching DaominType: should be ObjectDetection/ImageClassificaiton \n")
+           print("Exiting.....!!!! \n")
+           sys.exit(0)
+
+        self.platform = str(data["Platform"])
+        self.model_filename = str(data["ModelFileName"])
+        self.label_filename = str(data["LabelFileName"])
+
+        if "InputStream" in data:
+            self.video_inp = str(data["InputStream"])
+        if "ScaleWidth" in data:
+            self.model_inp_width = int(data["ScaleWidth"])
+        if "ScaleHeight" in data:
+            self.model_inp_height = int(data["ScaleHeight"])
+        if "RenderFlag" in data:
+            self.render = int(data["RenderFlag"])
+        if "Anchors" in data:
+            self.objdet_anchors = np.array(data["Anchors"])
+        if "InputFormat" in data:
+            self.input_format = str(data["InputFormat"])
+
+        # Application parameters
         self.img_width = 0
         self.img_height = 0
         self.cap_handle = None
         self.vs = None
         self.session = None
 
-        #onnxruntime.capi.onnxruntime_pybind11_state.RunOptions = False
-        with open(self.label_filename, 'r') as f:
+        with open(str("./model/" + self.label_filename), 'r') as f:
             labels = [l.strip() for l in f.readlines()]
 
-        super(ONNXRuntimeObjectDetection, self).__init__(labels)
+        super(ONNXRuntimeModelDeploy, self).__init__(labels)
         print("\n Triggering Inference...")
 
-        self.session = onnxruntime.InferenceSession(self.model_filename)
+        self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
 
         print("\n Started Inference...")
-        self.input_name = self.session.get_inputs()[0].name 
-        if self.disp == 0:
+        self.input_name = self.session.get_inputs()[0].name
+        if self.render == 0:
            print("Press Ctl+C to exit...")
   
     def predict(self, preprocessed_image):
@@ -82,9 +129,9 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
         web_cam_found = False
         for i in range(4):
-          if os.path.exists("/dev/video"+str(i)):
-             web_cam_found = True
-             break
+            if os.path.exists("/dev/video"+str(i)):
+              web_cam_found = True
+              break
 
         if web_cam_found:
            usb_video_path = "/dev/video"+str(i)
@@ -106,31 +153,32 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         while self.vs.stream.isOpened():
 
             if iot_hub_manager.setRestartCamera == True:
-               #self.cap_handle.release()
+               #self.cap_handle.release()), 1)
                #RunOptions.terminate = True
                self.vs.stream.release()
                cv2.destroyAllWindows()
 
-               if os.path.exists('./model/model.config'):
-                   print("\n Reading model.config file from model folder")
-                   config_filename = "./model/model.config"
+               if os.path.exists('./model/cvexport.manifest'):
+                   print("\n Reading cvexport.config file from model folder")
+                   config_filename = "./model/cvexport.manifest"
                    self.__init__(config_filename)
                    self.create_video_handle()
-               elif os.path.exists("model.config"):
-                   config_filename = "model.config"
-                   print("\n Reading model.config file from default base folder")
+               elif os.path.exists("cvexport.manifest"):
+                   config_filename = "cvexport.manifest"
+                   print("\n Reading cvexport.manifest file from default base folder")
                    self.__init__(config_filename)
                    self.create_video_handle()
                else:
-                   print("\n ERROR: model.config not found check root/model dir")
+                   print("\n ERROR: cvexport.manifest not found check root/model dir")
                    print("\n Exiting inference....")
                    sys.exit(0)
                iot_hub_manager.setRestartCamera = False
 
             # Caputre frame-by-frame
             frame = self.vs.read()
-
-            predictions, infer_time = self.predict_image(frame)
+            if str(self.domain_type) == "ObjectDetection":
+               print("Calling predict_image \n")
+               predictions, infer_time = self.predict_image(frame)
 
             for d in predictions:
                 x = int(d['boundingBox']['left'] * self.img_width)
@@ -145,13 +193,12 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                 end = (x_end,y_end)
 
                 if 0.45 < d['probability']:
-                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
+                    frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
 
                     out_label = str(d['tagName'])
                     score = str(int(d['probability']*100))
-
-                    cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-                    cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                    cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                    cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
                     message = { "Label": out_label,
                                 "Confidence": score,
@@ -161,11 +208,11 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
                     # Send message to IoT Hub
                     if iot_hub_manager is not None:
-                        iot_hub_manager.send_message_to_upstream(json.dumps(message))
+                       iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
-            cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 255), 1)
 
-            if self.disp == 1:
+            if self.render == 1:
                 # Displaying the image
                 cv2.imshow("Inference results", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -177,8 +224,8 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
 def main():
 
-    model_config_path = "./model/model.config"
-    od_handle = ONNXRuntimeObjectDetection(model_config_path)
+    manifest_file_path = "./model/cvexport.manifest"
+    od_handle = ONNXRuntimeModelDeploy(manifest_file_path)
 
     # Adding iot support
     # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
