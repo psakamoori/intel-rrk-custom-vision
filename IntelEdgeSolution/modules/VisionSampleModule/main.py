@@ -27,7 +27,7 @@ import time
 import datetime
 
 from VideoStream import VideoStream
-from predict import ObjectDetection
+from object_detection import ObjectDetection
 from iot_hub_manager import IotHubManager
 from iothub_client import IoTHubTransportProvider, IoTHubError
 from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
