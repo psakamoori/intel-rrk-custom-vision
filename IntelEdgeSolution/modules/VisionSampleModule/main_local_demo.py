@@ -13,8 +13,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 
- Author: Pradeep, Sakhamoori <pradeep.sakhamoori@intel.com>
- 
 """
 
 import sys, os
@@ -22,14 +20,14 @@ import onnxruntime
 import numpy as np
 import cv2
 import json
-import iot_hub_manager
 import time
 import datetime
+from store_to_blob import upload_to_cloud
 
 from VideoStream import VideoStream
 from predict import ObjectDetection
-from iot_hub_manager import IotHubManager
-from iothub_client import IoTHubTransportProvider, IoTHubError
+#from iot_hub_manager import IotHubManager
+#from iothub_client import IoTHubTransportProvider, IoTHubError
 from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
 
 class ONNXRuntimeObjectDetection(ObjectDetection):
@@ -54,6 +52,7 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.cap_handle = None
         self.vs = None
         self.session = None
+        self.cloudupload = False
 
         #onnxruntime.capi.onnxruntime_pybind11_state.RunOptions = False
         with open(self.label_filename, 'r') as f:
@@ -78,20 +77,10 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         inference_time = end - start
         return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
+
     def create_video_handle(self):
-
-        web_cam_found = False
-        for i in range(4):
-          if os.path.exists("/dev/video"+str(i)):
-             web_cam_found = True
-             break
-
-        if web_cam_found:
-           usb_video_path = "/dev/video"+str(i)
-        else:
-           print("\n Error: Input Camera device not found/detected")
-           print("\n Exisiting inference...")
-           sys.exit(0)
+        #usb_video_path = "rtsp://10.69.160.19:8900/live"
+        usb_video_path = "./TF/testimages/OwnData/Gate2.m4v"
 
         self.vs = VideoStream(usb_video_path).start()
 
@@ -99,39 +88,19 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.img_height = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    def model_inference(self, iot_hub_manager):
+    def model_inference(self):
 
         self.create_video_handle()
-
+        count=0
+        upload_count=0
         while self.vs.stream.isOpened():
-
-            if iot_hub_manager.setRestartCamera == True:
-               #self.cap_handle.release()
-               #RunOptions.terminate = True
-               self.vs.stream.release()
-               cv2.destroyAllWindows()
-
-               if os.path.exists('./model/model.config'):
-                   print("\n Reading model.config file from model folder")
-                   config_filename = "./model/model.config"
-                   self.__init__(config_filename)
-                   self.create_video_handle()
-               elif os.path.exists("model.config"):
-                   config_filename = "model.config"
-                   print("\n Reading model.config file from default base folder")
-                   self.__init__(config_filename)
-                   self.create_video_handle()
-               else:
-                   print("\n ERROR: model.config not found check root/model dir")
-                   print("\n Exiting inference....")
-                   sys.exit(0)
-               iot_hub_manager.setRestartCamera = False
-
+            count=count+1
             # Caputre frame-by-frame
             frame = self.vs.read()
-
+            if(frame is None):
+                print("cannot capture frame exiting")
+        
             predictions, infer_time = self.predict_image(frame)
-
             for d in predictions:
                 x = int(d['boundingBox']['left'] * self.img_width)
                 y = int(d['boundingBox']['top'] * self.img_height)
@@ -143,11 +112,29 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
 
                 start = (x,y)
                 end = (x_end,y_end)
-
+                
                 if 0.45 < d['probability']:
-                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
-
                     out_label = str(d['tagName'])
+                    if(out_label == 'car'):
+                        cropframe = frame[y:y_end, x:x_end]
+                        #cv2.imshow("car only cropped",cropframe)
+                        
+                        format = ".jpg"
+                        filename = "car_" + str(upload_count) + "_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + format
+                        store_path =os.path.join(os.path.os.path.dirname(os.path.abspath(__file__)),"captured_images",filename)
+                        #if(self.cloudupload):
+                            #upload_to_cloud(cropframe,upload_count)
+                        #else:
+                            #cv2.imwrite(store_path,cropframe) 
+                        upload_count += 1
+                        if(full_frame == True):
+                            frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
+                            score = str(int(d['probability']*100))
+                            cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                            cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
+                            cv2.imwrite(store_path,frame)
+
+                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
                     score = str(int(d['probability']*100))
 
                     cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
@@ -160,12 +147,11 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                     }
 
                     # Send message to IoT Hub
-                    if iot_hub_manager is not None:
-                        iot_hub_manager.send_message_to_upstream(json.dumps(message))
+                    print(message)
 
             cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
 
-            if self.disp == 1:
+            if self.disp == 0:
                 # Displaying the image
                 cv2.imshow("Inference results", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -175,18 +161,17 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         self.vs.__exit__(None, None, None)
         cv2.destroyAllWindows()
 
+
 def main():
-  
+
     model_config_path = "./model/model.config"
     od_handle = ONNXRuntimeObjectDetection(model_config_path)
 
     # Adding iot support
     # Choose HTTP, AMQP or MQTT as transport protocol.  Currently only MQTT is supported.
-    IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
-    iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
 
     #print(" Starting model inference... ")
-    od_handle.model_inference(iot_hub_manager)
+    od_handle.model_inference()
 
 if __name__ == '__main__':
     main()

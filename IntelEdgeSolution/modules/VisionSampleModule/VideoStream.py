@@ -3,6 +3,7 @@ from threading import Thread
 import sys
 import cv2
 from queue import Queue
+import os
  
 # This class reads all the video frames in a separate thread and always has the 
 # keeps only the latest frame in its queue to be grabbed by another thread
@@ -31,8 +32,11 @@ class VideoStream(object):
                    # if the `grabbed` boolean is `False`, then we have
                    # reached the end of the video file
                    if not grabbed:
-                      self.stop()
-                      return
+                      #self.stop()
+                      print("no more frames returning")
+                      self.__exit__
+                      #break
+                      #return
                    self.Q.put(frame)
 
                    #Clean the queue to keep only the latest frame
@@ -52,3 +56,4 @@ class VideoStream(object):
 
       def __exit__(self, exception_type, exception_value, traceback):
           self.stream.release()
+          os._exit()

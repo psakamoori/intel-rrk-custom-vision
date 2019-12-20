@@ -24,6 +24,7 @@ import cv2
 import json
 import time
 import datetime
+import store_to_blob
 
 from VideoStream import VideoStream
 from predict import ObjectDetection
@@ -93,6 +94,8 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
         while self.vs.stream.isOpened():
             # Caputre frame-by-frame
             frame = self.vs.read()
+            if(frame is None):
+                break
             predictions, infer_time = self.predict_image(frame)
             for d in predictions:
                 x = int(d['boundingBox']['left'] * self.img_width)
@@ -107,14 +110,17 @@ class ONNXRuntimeObjectDetection(ObjectDetection):
                 end = (x_end,y_end)
 
                 if 0.45 < d['probability']:
-                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
-
                     out_label = str(d['tagName'])
+                    if(out_label == "person"):
+                        cropframe = frame[y:y_end, x:x_end]
+                        cv2.imshow("person only cropped",cropframe)
+                    frame = cv2.rectangle(frame,start,end, (255, 255, 255), 1)
+                    
                     score = str(int(d['probability']*100))
 
                     cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
                     cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 1)
-
+                    
                     message = { "Label": out_label,
                                 "Confidence": score,
                                 "Position": [x, y, x_end, y_end],
