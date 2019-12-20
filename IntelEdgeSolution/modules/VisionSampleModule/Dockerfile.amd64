@@ -29,6 +29,7 @@ COPY main_cv_url.py ./
 COPY object_detection.py ./
 COPY VideoStream.py ./
 COPY iot_hub_manager.py ./
+COPY image_classification.py ./
 COPY utility.py ./
 COPY model/cvexport.manifest ./
 COPY model model/
