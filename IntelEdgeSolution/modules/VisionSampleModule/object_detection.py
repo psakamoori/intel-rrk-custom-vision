@@ -17,12 +17,14 @@
 import numpy as np
 import math
 import cv2
+import onnxruntime
+import time
 
 class ObjectDetection(object):
     """Class for Custom Vision's exported object detection model
     """
 
-    def __init__(self, labels, prob_threshold=0.10, max_detections = 20):
+    def __init__(self, data, labels=None, prob_threshold=0.10, max_detections = 20):
         """Initialize the class
 
         Args:
@@ -31,11 +33,72 @@ class ObjectDetection(object):
             max_detections (int): the max number of output results.
         """
 
-        assert len(labels) >= 1, "At least 1 label is required"
-
         self.labels = labels
         self.prob_threshold = prob_threshold
         self.max_detections = max_detections
+
+
+        if "IouThreshold" in data:
+            self.iou_threshold = data["IouThreshold"]
+        else:
+            self.iou_threshold = 0.45
+        if "ConfThreshold" in data:
+            self.conf_threshold = data["ConfThreshold"]
+        else:
+            self.conf_threshold = 0.5
+
+        # TBD Need to add error check
+        self.platform = str(data["Platform"])
+        self.model_filename = str(data["ModelFileName"])
+        self.label_filename = str(data["LabelFileName"])
+
+        if "InputStream" in data:
+            self.video_inp = str(data["InputStream"])
+        if "ScaleWidth" in data:
+            self.model_inp_width = int(data["ScaleWidth"])
+        else:
+            self.model_inp_width = 416
+
+        if "ScaleHeight" in data:
+            self.model_inp_height = int(data["ScaleHeight"])
+        else:
+            self.model_inp_height = 416
+
+        if "RenderFlag" in data:
+            self.render = int(data["RenderFlag"])
+        else:
+            self.render = 1
+
+        if "Anchors" in data:
+            self.anchors = np.array(data["Anchors"])
+        else:
+            self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+
+        if "InputFormat" in data:
+            self.input_format = str(data["InputFormat"])
+        else:
+            self.input_format = "RGB"
+
+        self.session = None
+        self.onnxruntime_session_init()
+
+    def onnxruntime_session_init(self):
+
+        with open(str("./model/" + self.label_filename), 'r') as f:
+             labels = [l.strip() for l in f.readlines()]
+
+        assert len(labels) >= 1, "At least 1 label is required"
+        self.labels = labels
+
+        #super(ObjectDetection, self).__init__(labels)
+        print("\n Triggering Inference...")
+
+        self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
+
+        print("\n Started Inference...")
+        self.input_name = self.session.get_inputs()[0].name
+        if self.render == 0:
+           print("Press Ctl+C to exit...")
 
     def _logistic(self, x):
         return np.where(x > 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
@@ -149,7 +212,13 @@ class ObjectDetection(object):
 
         Need to be implemented for each platforms. i.e. TensorFlow, CoreML, etc.
         """
-        raise NotImplementedError
+        inputs = np.array(preprocessed_inputs, dtype=np.float32)[np.newaxis,:,:,(2,1,0)] # RGB -> BGR
+        inputs = np.ascontiguousarray(np.rollaxis(inputs, 3, 1))
+        start = time.time()
+        outputs = self.session.run(None, {self.input_name: inputs})
+        end = time.time()
+        inference_time = end - start
+        return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
     def postprocess(self, prediction_outputs):
         """ Extract bounding boxes from the model outputs.
