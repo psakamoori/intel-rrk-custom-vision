@@ -67,12 +67,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         # default anchors
         if str(self.domain_type) == "ObjectDetection":
            objdet = ObjectDetection(data, None)
-           self.model_inference(objdet, iot_hub_manager)
-        elif str(self.domain_type) == "ImageClassification":
+           self.model_inference(objdet, iot_hub_manager, 1)
+        elif str(self.domain_type) == "Classification":
            imgcls = ImageClassification(data)
-           self.model_inference(imgcls, iot_hub_manager)
+           self.model_inference(imgcls, iot_hub_manager, 0)
         else:
-           print("Error: No matching DaominType: should be ObjectDetection/ImageClassificaiton \n")
+           print("Error: No matching DaominType: should be ObjectDetection/Classificaiton \n")
            print("Exiting.....!!!! \n")
            sys.exit(0)
 
@@ -105,7 +105,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.img_height = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    def model_inference(self, obj, iot_hub_manager):
+    def model_inference(self, obj, iot_hub_manager, pp_flag):
 
         self.create_video_handle()
         while self.vs.stream.isOpened():
@@ -138,35 +138,52 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
             frame = self.vs.read()
             predictions, infer_time = obj.predict_image(frame)
 
-            for d in predictions:
-                x = int(d['boundingBox']['left'] * self.img_width)
-                y = int(d['boundingBox']['top'] * self.img_height)
-                w = int(d['boundingBox']['width'] * self.img_width)
-                h = int(d['boundingBox']['height'] * self.img_height)
+            # if Object Detection
+            if pp_flag:
+                for d in predictions:
+                   x = int(d['boundingBox']['left'] * self.img_width)
+                   y = int(d['boundingBox']['top'] * self.img_height)
+                   w = int(d['boundingBox']['width'] * self.img_width)
+                   h = int(d['boundingBox']['height'] * self.img_height)
 
-                x_end = x+w
-                y_end = y+h
+                   x_end = x+w
+                   y_end = y+h
 
-                start = (x,y)
-                end = (x_end,y_end)
+                   start = (x,y)
+                   end = (x_end,y_end)
 
-                if 0.45 < d['probability']:
-                    frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
+                   if 0.45 < d['probability']:
+                      frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
 
-                    out_label = str(d['tagName'])
-                    score = str(int(d['probability']*100))
-                    cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
-                    cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                      out_label = str(d['tagName'])
+                      score = str(int(d['probability']*100))
+                      cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                      cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
-                    message = { "Label": out_label,
-                                "Confidence": score,
-                                "Position": [x, y, x_end, y_end],
-                                "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                    }
+                      message = { "Label": out_label,
+                                  "Confidence": score,
+                                  "Position": [x, y, x_end, y_end],
+                                  "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                      }
 
-                    # Send message to IoT Hub
-                    if iot_hub_manager is not None:
-                       iot_hub_manager.send_message_to_upstream(json.dumps(message))
+                      # Send message to IoT Hub
+                      if iot_hub_manager is not None:
+                         iot_hub_manager.send_message_to_upstream(json.dumps(message))
+            else:  #Postprocessing for Classificaton model
+
+                res = obj.postprocess(predictions)
+                idx = np.argmax(res)
+
+                frame = cv2.putText(frame, obj.labels[idx], (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+
+                message = { "Label": obj.labels[idx],
+                            "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                          }
+
+                # Send message to IoT Hub
+                if iot_hub_manager is not None:
+                   iot_hub_manager.send_message_to_upstream(json.dumps(message))
+
 
             cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 255), 1)
 
