@@ -14,7 +14,7 @@
 import numpy as np    # we're going to use numpy to process input and output data
 import onnxruntime    # to inference ONNX models, we use the ONNX Runtime
 import onnx
-import sys
+import sys, os
 from onnx import numpy_helper
 import urllib.request
 import json
@@ -29,22 +29,29 @@ class ImageClassification(object):
     """
     def __init__(self, data):
 
+        print("Call: Constructor: ImageClassification.__init__")
+
         # TBD Need to add error check
         self.platform = str(data["Platform"])
         self.model_filename = str(data["ModelFileName"])
-        self.label_filename = str(data["LabelFileName"])
+
+        if "LabelFileName" in data:
+            self.label_filename = str(data["LabelFileName"])
+            if self.label_filename == 'None':
+                self.label_filename = str("labels.txt")
+        else:
+            self.label_filename = str("labels.txt")
 
         if "InputStream" in data:
             self.video_inp = str(data["InputStream"])
+
+        # Look for input width and height from cvexport.manifest
+        # if not present, read from model.onnx file (ref: onnxruntime_session_init)
         if "ScaleWidth" in data:
             self.model_inp_width = int(data["ScaleWidth"])
-        else:
-            self.model_inp_width = 224
-
         if "ScaleHeight" in data:
             self.model_inp_height = int(data["ScaleHeight"])
-        else:
-            self.model_inp_height = 24
+
         if "RenderFlag" in data:
             self.render = int(data["RenderFlag"])
         else:
@@ -70,13 +77,28 @@ class ImageClassification(object):
         if self.session is not None:
            self.session = None
 
-        #onnxruntime.capi.onnxruntime_pybind11_state.RunOptions = False
+        self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
 
-        with open(self.label_filename, 'r') as f:
-            self.labels = [l.strip() for l in f.readlines()]
-
-        self.session = onnxruntime.InferenceSession(self.model_filename, None)
         self.input_name = self.session.get_inputs()[0].name
+
+        # Reading input width & height from onnx model file
+        self.model_inp_width = self.session.get_inputs()[0].shape[2]
+        self.model_inp_height = self.session.get_inputs()[0].shape[3]
+
+        if os.path.isfile(str("./model/" + self.label_filename)):
+           with open(str("./model/" + self.label_filename), 'r') as f:
+              self.labels = [l.strip() for l in f.readlines()]
+        else:
+            print("Warning: Labels file not found")
+            self.labels = None
+            #f = open(str("./model/" + self.label_filename), 'w')
+            #for i in range(2):
+            #    f.write('%d' % i)
+            #    f.write("\n")
+            #f.close()
+
+            #with open(str("./model/" + self.label_filename), 'r') as f:
+            #  self.labels = [l.strip() for l in f.readlines()]
 
     def load_labels(self, path):
         with open(path) as f:
@@ -97,7 +119,9 @@ class ImageClassification(object):
         return norm_img_data
 
     def predict_image(self, frame):
-        image_data = np.array(frame).transpose(2, 0, 1)
+        image_data = cv2.resize(frame, (self.model_inp_width, self.model_inp_height), interpolation = cv2.INTER_AREA)
+        image_data = np.array(image_data).transpose(2, 0, 1)
+        #image_data = np.array(frame).transpose(2, 0, 1)
         input_data = self.preprocess(image_data)
         input_name = self.session.get_inputs()[0].name 
 
@@ -108,8 +132,16 @@ class ImageClassification(object):
         inference_time = end - start
         for i in raw_result:
             label_dict = i
-    
+
         predictions = []
+        v = []
+
+        if self.labels is None:
+            self.labels = []
+            for key, value in label_dict.items():
+                self.labels.append(str(key))
+                v.append(value)
+
         for key in self.labels:
             predictions.append(label_dict[key])
         return predictions, inference_time
