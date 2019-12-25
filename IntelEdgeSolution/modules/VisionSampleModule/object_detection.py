@@ -33,6 +33,8 @@ class ObjectDetection(object):
             max_detections (int): the max number of output results.
         """
 
+        print("Call: Constructor: ObjectDetection.__init__")
+
         self.labels = labels
         self.prob_threshold = prob_threshold
         self.max_detections = max_detections
@@ -50,19 +52,21 @@ class ObjectDetection(object):
         # TBD Need to add error check
         self.platform = str(data["Platform"])
         self.model_filename = str(data["ModelFileName"])
-        self.label_filename = str(data["LabelFileName"])
+
+        if "LabelFileName" in data:
+            self.label_filename = str(data["LabelFileName"])
+        else:
+            self.label_filename = str("labels.txt")
 
         if "InputStream" in data:
             self.video_inp = str(data["InputStream"])
+
+        # Look for input width and height from cvexport.manifest
+        # if not present, read from model.onnx file (ref: onnxruntime_session_init)
         if "ScaleWidth" in data:
             self.model_inp_width = int(data["ScaleWidth"])
-        else:
-            self.model_inp_width = 416
-
         if "ScaleHeight" in data:
             self.model_inp_height = int(data["ScaleHeight"])
-        else:
-            self.model_inp_height = 416
 
         if "RenderFlag" in data:
             self.render = int(data["RenderFlag"])
@@ -94,6 +98,10 @@ class ObjectDetection(object):
         print("\n Triggering Inference...")
 
         self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
+
+        # Reading input width & height from onnx model file
+        self.model_inp_width = self.session.get_inputs()[0].shape[2]
+        self.model_inp_height = self.session.get_inputs()[0].shape[3]
 
         print("\n Started Inference...")
         self.input_name = self.session.get_inputs()[0].name
