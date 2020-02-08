@@ -76,15 +76,25 @@ class iot_edge_resoruce_create():
 
         # check length of rs_group array; empty array length will be 1
         if len(rs_group) > 3:
+           rs_gr_lst = []
            rs_grp = json.loads(rs_group)
-           self.rs_grp_name = rs_grp[0]['name']
-           self.logs(" Resource Group Found ")
-           self.logs("Resoruce Group INFO = " + str(rs_group))
-           self.logs("Resource Group NAME = " + str(self.rs_grp_name))
+           self.logs("No.of. RGs found: " + str(len(rs_grp)))
+
+           for i in range(len(rs_grp)):
+               #self.rs_grp_name.append(str(rs_grp[i]['name']))
+               rs_gr_lst.append(str(rs_grp[i]['name']))
+               #self.logs("RG Info = " + str(rs_group))
+               self.logs("RG Num and Name = " + str(i) + " " + str(rs_grp[i]['name']))
            self.logs(" WANT TO CREATE NEW RESOURCE GROUP [yes/no]")
            new_rs_grp_flag = input()
            if new_rs_grp_flag == 'yes':
               self.create_new_resource_group()
+           if new_rs_grp_flag == 'no':
+              self.logs("Select Resource Group from below list: \n" + str(rs_gr_lst))
+              self.rs_grp_name = input()
+              if str(self.rs_grp_name) not in rs_gr_lst:
+                 self.log("WARNING: In-correct resource group name selected")
+                 self.rs_grp_name = None
         else:
            self.logs(" ***Warning: No Resource Found ")
            self.create_new_resource_group()
@@ -102,7 +112,10 @@ class iot_edge_resoruce_create():
 
     def check_for_hub(self):
         #Check if IoT Hub exists; if not create one
-        proc = subprocess.Popen(['az', 'iot', 'hub', 'list'],
+        #proc = subprocess.Popen(['az', 'iot', 'hub', 'list'],
+        #                         stdout=subprocess.PIPE)
+
+        proc = subprocess.Popen(['az', 'iot', 'hub', 'list', '--resource-group', self.rs_grp_name],
                                  stdout=subprocess.PIPE)
 
         (iot_hub, err) = proc.communicate()
