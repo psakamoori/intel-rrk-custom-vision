@@ -25,7 +25,6 @@ RUN pip install -r requirements.txt && \
 ARG DEVICE
 
 COPY main.py ./
-COPY main_cv_url.py ./
 COPY object_detection.py ./
 COPY VideoStream.py ./
 COPY iot_hub_manager.py ./
