@@ -37,10 +37,6 @@ class ImageClassification(object):
 
         if "LabelFileName" in data:
             self.label_filename = str(data["LabelFileName"])
-            if self.label_filename == 'None':
-                self.label_filename = str("labels.txt")
-        else:
-            self.label_filename = str("labels.txt")
 
         if "InputStream" in data:
             self.video_inp = str(data["InputStream"])
@@ -91,14 +87,6 @@ class ImageClassification(object):
         else:
             print("Warning: Labels file not found")
             self.labels = None
-            #f = open(str("./model/" + self.label_filename), 'w')
-            #for i in range(2):
-            #    f.write('%d' % i)
-            #    f.write("\n")
-            #f.close()
-
-            #with open(str("./model/" + self.label_filename), 'r') as f:
-            #  self.labels = [l.strip() for l in f.readlines()]
 
     def load_labels(self, path):
         with open(path) as f:
