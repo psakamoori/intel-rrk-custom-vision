@@ -30,8 +30,8 @@ Deploying OpenVINO AI Vision Module onto IoT Edge device
   1. USB Camera connected to Edge device 
   2. USB Neural Compute Stick 2 connected to Edge device
 
-** Starting inference with Object detection/image classification ONNX model (from customvision.ai zip url)**
-=======================
+**Starting inference with Object detection/image classification ONNX model (from customvision.ai zip url)**
+==================================
   1. Follow video/snapshots placed on Azure Markpet place
 
 
