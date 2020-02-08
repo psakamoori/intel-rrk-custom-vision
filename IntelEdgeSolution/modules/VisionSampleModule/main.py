@@ -41,7 +41,7 @@ iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
 class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     """Object Detection class for ONNX Runtime
     """
-    def __init__(self, manifest):
+    def __init__(self, manifest, tu_flag_=False):
         # Default system params
         self.video_inp = "cam"
         self.render = True
@@ -53,6 +53,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.vs = None
         self.session = None
 
+        self.twin_update_flag = tu_flag_
         self.m_parser(manifest)
 
     def m_parser(self, manifest):
@@ -72,7 +73,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
            imgcls = ImageClassification(data)
            self.model_inference(imgcls, iot_hub_manager, 0)
         else:
-           print("Error: No matching DaominType: should be ObjectDetection/Classificaiton \n")
+           print("Error: No matching DomainType: Object Detection/Image Classificaiton \n")
            print("Exiting.....!!!! \n")
            sys.exit(0)
 
@@ -109,7 +110,6 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 
         self.create_video_handle()
         while self.vs.stream.isOpened():
-
             if iot_hub_manager.setRestartCamera == True:
                iot_hub_manager.setRestartCamera = False
                #self.cap_handle.release()
@@ -121,12 +121,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                if os.path.exists('./model/cvexport.manifest'):
                    print("\n Reading cvexport.config file from model folder")
                    config_filename = "./model/cvexport.manifest"
-                   self.__init__(config_filename)
+                   self.__init__(config_filename, True)
                    self.create_video_handle()
                elif os.path.exists("cvexport.manifest"):
                    config_filename = "cvexport.manifest"
                    print("\n Reading cvexport.manifest file from default base folder")
-                   self.__init__(config_filename)
+                   self.__init__(config_filename, True)
                    self.create_video_handle()
                else:
                    print("\n ERROR: cvexport.manifest not found check root/model dir")
@@ -136,56 +136,57 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 
             # Caputre frame-by-frame
             frame = self.vs.read()
-            predictions, infer_time = obj.predict_image(frame)
+            if self.twin_update_flag:
+               predictions, infer_time = obj.predict_image(frame)
 
-            # if Object Detection
-            if pp_flag:
-                for d in predictions:
-                   x = int(d['boundingBox']['left'] * self.img_width)
-                   y = int(d['boundingBox']['top'] * self.img_height)
-                   w = int(d['boundingBox']['width'] * self.img_width)
-                   h = int(d['boundingBox']['height'] * self.img_height)
+               # if Object Detection
+               if pp_flag:
+                  for d in predictions:
+                     x = int(d['boundingBox']['left'] * self.img_width)
+                     y = int(d['boundingBox']['top'] * self.img_height)
+                     w = int(d['boundingBox']['width'] * self.img_width)
+                     h = int(d['boundingBox']['height'] * self.img_height)
 
-                   x_end = x+w
-                   y_end = y+h
+                     x_end = x+w
+                     y_end = y+h
 
-                   start = (x,y)
-                   end = (x_end,y_end)
+                     start = (x,y)
+                     end = (x_end,y_end)
 
-                   if 0.45 < d['probability']:
-                      frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
+                     if 0.50 < d['probability']:
+                        frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
 
-                      out_label = str(d['tagName'])
-                      score = str(int(d['probability']*100))
-                      cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
-                      cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                        out_label = str(d['tagName'])
+                        score = str(int(d['probability']*100))
+                        cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                        cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
-                      message = { "Label": out_label,
-                                  "Confidence": score,
-                                  "Position": [x, y, x_end, y_end],
-                                  "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                      }
+                        message = { "Label": out_label,
+                                    "Confidence": score,
+                                    "Position": [x, y, x_end, y_end],
+                                    "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        }
 
-                      # Send message to IoT Hub
-                      if iot_hub_manager is not None:
-                         iot_hub_manager.send_message_to_upstream(json.dumps(message))
-            else:  #Postprocessing for Classificaton model
+                        # Send message to IoT Hub
+                        if iot_hub_manager is not None:
+                           iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
-                res = obj.postprocess(predictions)
-                idx = np.argmax(res)
+               else:  #Postprocessing for Classificaton model
+                    res = obj.postprocess(predictions)
+                    idx = np.argmax(res)
 
-                frame = cv2.putText(frame, obj.labels[idx], (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                    frame = cv2.putText(frame, obj.labels[idx], (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
-                message = { "Label": obj.labels[idx],
-                            "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                          }
+                    message = { "Label": obj.labels[idx],
+                                "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                              }
 
-                # Send message to IoT Hub
-                if iot_hub_manager is not None:
-                   iot_hub_manager.send_message_to_upstream(json.dumps(message))
+                    # Send message to IoT Hub
+                    if iot_hub_manager is not None:
+                       iot_hub_manager.send_message_to_upstream(json.dumps(message))
 
 
-            cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 255), 1)
+               cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 255), 1)
 
             if self.render == 1:
                 # Displaying the image
