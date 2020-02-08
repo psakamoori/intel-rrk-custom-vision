@@ -10,7 +10,7 @@ Deploying OpenVINO AI Vision Module onto IoT Edge device
 2. Operating System: Ubuntu 16.04
 
 
-**prerequisites:
+**prerequisites**
 ==============
 
 1. Azure account 
@@ -25,12 +25,12 @@ Deploying OpenVINO AI Vision Module onto IoT Edge device
 4. Enabling xhost on IoT Edge device:
    - Linux terminal command: $xhost +SI:localuser:root
    
-**HW Accessories and Enabling xhost :
+**HW Accessories and Enabling xhost**
 ===============
   1. USB Camera connected to Edge device 
   2. USB Neural Compute Stick 2 connected to Edge device
 
-** Starting inference with Object detection/image classification ONNX model (from customvision.ai zip url)
+** Starting inference with Object detection/image classification ONNX model (from customvision.ai zip url)**
 =======================
   1. Follow video/snapshots placed on Azure Markpet place
 
