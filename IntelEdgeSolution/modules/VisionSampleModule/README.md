@@ -1,16 +1,16 @@
 
-Deploying OpenVINO AI Vision Module onto IoT Edge device
+Deploying OpenVINO: AI Vision Module onto IoT Edge device
 ======================
 
-**Supported Platform**
+**Supported Platforms**
 ===========
 1. Hardware Used:
-      CPU: Intel® Core™ i7-7567U CPU @ 3.5GHz × 4  
-      VPU: Intel® Neural Compute Stick 2 (NCS2)
+      CPU (Host Processor): Intel® Core™ i7-7567U CPU @ 3.5GHz × 4  
+      VPU (Accelerator): Intel® Neural Compute Stick 2 (NCS2)
 2. Operating System: Ubuntu 16.04
 
 
-**prerequisites**
+**Pre-requisites**
 ==============
 
 1. Azure account 
@@ -19,23 +19,24 @@ Deploying OpenVINO AI Vision Module onto IoT Edge device
 2. Docker Installation
    - Docker : https://docs.docker.com/install/linux/docker-ce/ubuntu/
 3. Installations
-   - OpenVINO: Download and install OpenVINO 2019_R3 from [link](http://docs.openvinotoolkit.org/latest/_docs_install_guides_installing_openvino_linux.html)
+   - Intel® Distribution of OpenVINO™ toolkit: Download and install OpenVINO 2019_R3 from [link](http://docs.openvinotoolkit.org/2019_R3/_docs_install_guides_installing_openvino_linux.html)
    - Drivers for NCS2: Intel® Vision Accelerator Design with Intel® Movidius™ VPUs on Linux* using [link](https://software.intel.com/en-us/articles/get-started-with-neural-compute-stick)
    - Azure IoT Edge Runtime [link](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-linux)
 4. Enabling xhost on IoT Edge device:
    - Linux terminal command: $xhost +SI:localuser:root
    
-**HW Accessories and Enabling xhost**
+**Hardware Accessories and Enabling xhost**
 ===============
-  1. USB Camera connected to Edge device 
-  2. USB Neural Compute Stick 2 connected to Edge device
+  1. Ensure that the USB Camera is connected to edge device.
+  2. Ensure that the Intel® Neural Compute Stick 2 is connected to the edge device.
 
-**Starting inference with Object detection/image classification ONNX model (from customvision.ai zip url)**
+**Starting inference with object detection or image classification ONNX model (from customvision.ai zip url)**
 ==================================
-  1. Follow video/snapshots placed on Azure Markpet place
+Follow video and/or snapshots on Azure Marketplace
 
+Tried it? Join the conversation on the [Community Forum](https://software.intel.com/en-us/forums/intel-distribution-of-openvino-toolkit)
 
-**Trobuleshooting**
+**Troubleshooting**
 ================
 
 [1] USB Device not found (for NCS2)
@@ -64,7 +65,7 @@ Container Create Options to mount NCS2 inside docker:
 
   Once app is deployed on to Edge device follow below steps
 
-   1. Goto Azure IoT Hub on your portal.azure.com
+   1. Go to Azure IoT Hub on your portal.azure.com
    2. Select "IoT Edge" under "Automatic Device Managment"
    3. Select IoT device 
    4. Click "Set Modules"
