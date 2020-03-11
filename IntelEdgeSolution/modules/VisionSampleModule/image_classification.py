@@ -65,6 +65,16 @@ class ImageClassification(object):
            
         if "InputFormat" in data:
             self.input_format = str(data["InputFormat"])
+
+        if "MeanValue" in data:
+            self.mean_value = np.array(data["Meanvalue"])
+        else:
+            self.mean_value = [127.5, 127.5, 127.5]
+        
+        if "Scale" in data:
+            self.scale = float(data["Scale"])
+        else:
+            self.scale = float(127.5)
         
         self.session = None
         self.onnxruntime_session_init()
