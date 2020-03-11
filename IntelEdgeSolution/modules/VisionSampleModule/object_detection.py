@@ -24,7 +24,7 @@ class ObjectDetection(object):
     """Class for Custom Vision's exported object detection model
     """
 
-    def __init__(self, data, labels=None, prob_threshold=0.10, max_detections = 20):
+    def __init__(self, data, render_flag, labels=None, prob_threshold=0.10, max_detections = 20):
         """Initialize the class
 
         Args:
@@ -76,17 +76,30 @@ class ObjectDetection(object):
         if "Anchors" in data:
             self.anchors = np.array(data["Anchors"])
         else:
-            self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+            # Original
+            #self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+            self.anchors = np.array([[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]])
 
         if "InputFormat" in data:
             self.input_format = str(data["InputFormat"])
         else:
             self.input_format = "RGB"
 
-        self.session = None
-        self.onnxruntime_session_init()
+        
+        if "MeanValue" in data:
+            self.mean_value = np.array(data["Meanvalue"])
+        else:
+            self.mean_value = [127.5, 127.5, 127.5]
+        
+        if "Scale" in data:
+            self.scale = float(data["Scale"])
+        else:
+            self.scale = float(127.5)
 
-    def onnxruntime_session_init(self):
+        self.session = None
+        self.onnxruntime_session_init(render_flag)
+
+    def onnxruntime_session_init(self, render_flag):
 
         with open(str("./model/" + self.label_filename), 'r') as f:
              labels = [l.strip() for l in f.readlines()]
@@ -105,7 +118,7 @@ class ObjectDetection(object):
 
         print("\n Started Inference...")
         self.input_name = self.session.get_inputs()[0].name
-        if self.render == 0:
+        if render_flag == 0:
            print("Press Ctl+C to exit...")
 
     def _logistic(self, x):
