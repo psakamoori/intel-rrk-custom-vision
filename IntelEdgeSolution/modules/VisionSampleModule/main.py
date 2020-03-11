@@ -25,6 +25,8 @@ import json
 import iot_hub_manager
 import time
 import datetime
+from pytz import timezone
+import requests
 
 from VideoStream import VideoStream
 from object_detection import ObjectDetection
@@ -38,13 +40,16 @@ from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
 IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
 iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
 
+# URL to send frames for inferencing
+url = 'http://openvinoedgemodule:8001'
+TIME_ZONE = timezone('US/Pacific')
+
 class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     """Object Detection class for ONNX Runtime
     """
     def __init__(self, manifest, tu_flag_=False):
         # Default system params
         self.video_inp = "cam"
-        self.render = True
 
         # Application parameters
         self.img_width = 0
@@ -52,6 +57,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.cap_handle = None
         self.vs = None
         self.session = None
+        self.cam_idx = None
+        self.cam_node = None
+        self.input_type = None
+        self.input_node = None
+        self.render_flag = None
+        self.camera_handle = None
 
         self.twin_update_flag = tu_flag_
         self.m_parser(manifest)
@@ -59,15 +70,36 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     def m_parser(self, manifest):
 
         m_file = open(manifest)
+        print("manifest---path", manifest)
+
         data = json.load(m_file)
 
          # cvexport manifest prameters
         self.domain_type = str(data["DomainType"])
         print("Domain Type:", self.domain_type)
+        print("Data", data)
+
+        if "InputType" in data:
+            self.input_type = str(data["InputType"])
+        else:
+            # defaulted to usb_cam
+            self.input_type = str("usb_cam")
+
+        if "InputNode" in data:
+            self.input_node = str(data["InputNode"])
+        else:
+            # defaulted to Video0
+            self.input_node = str("/dev/video0")
+
+        if "Renderfalg" in data:
+            self.render_flag = int(data["RenderFlag"])
+        else:
+            # default to DISPLAY
+            self.render_flag = 1
 
         # default anchors
         if str(self.domain_type) == "ObjectDetection":
-           objdet = ObjectDetection(data, None)
+           objdet = ObjectDetection(data, self.render_flag, None)
            self.model_inference(objdet, iot_hub_manager, 1)
         elif str(self.domain_type) == "Classification":
            imgcls = ImageClassification(data)
@@ -87,20 +119,33 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     #    return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
     def create_video_handle(self):
-        web_cam_found = False
-        for i in range(4):
-            if os.path.exists("/dev/video"+str(i)):
-              web_cam_found = True
-              break
+        #web_cam_found = False
+        #for i in range(4):
+        #    if os.path.exists("/dev/video"+str(i)):
+        #      web_cam_found = True
+        #      self.cam_idx = i
+        #      self.cam_node = "/dev/video"+str(i)
+        #      break
 
-        if web_cam_found:
-           usb_video_path = "/dev/video"+str(i)
+        #if web_cam_found:
+        #   usb_video_path = "/dev/video"+str(i)
+        #else:
+        #   print("\n Error: Input Camera device not found/detected")
+        #   print("\n Exisiting inference...")
+        #   sys.exit(0)
+
+        if str(self.input_type) == "usb_cam":
+            if os.path.exists(str(self.input_node)):
+                self.camera_handle = str(self.input_node)
+        elif str(self.input_type) == "video_file":
+            if os.path.exists(str(self.input_node)):
+                self.camera_handle = str(self.input_node)
         else:
-           print("\n Error: Input Camera device not found/detected")
-           print("\n Exisiting inference...")
-           sys.exit(0)
+            print("\n Error: Input Camera device not found/detected")
+            print("\n Exiting inference...")
+            sys.exit(0)
 
-        self.vs = VideoStream(usb_video_path).start()
+        self.vs = VideoStream(self.camera_handle).start()
 
         # Reading widht and height details
         self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -188,11 +233,26 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 
                cv2.putText(frame, 'FPS: {}'.format(1.0/infer_time), (10,40), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 255), 1)
 
-            if self.render == 1:
+            if self.render_flag:
                 # Displaying the image
                 cv2.imshow("Inference results", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                    break
+            
+            #cv2.waitKey(5)
+            #output = {"camera" : 0, "location" : str(self.cam_idx)}
+            #camera = str(self.cam_idx)
+            #(flag, encImg) = cv2.imencode(".jpg", frame)
+            #if flag:
+            #   output[camera+":frame"] = encImg
+            #   ts = datetime.now(TIME_ZONE)
+            #   output[camera+':timestamp'] = ts.strftime("%Y-%m-%d %H:%M:%S")
+            #   print("Type of output:", str(type(output)))
+            #   try:
+            #      headers = {'Content-Type': 'OpenVINOApplication/json'}
+            #      response = requests.post(url, headers=headers, data=json.dumps(output))
+            #   except Exception as e:
+            #      print('EXCEPTION:', str(e))
 
         # when everything done, release the capture
         self.vs.__exit__(None, None, None)
