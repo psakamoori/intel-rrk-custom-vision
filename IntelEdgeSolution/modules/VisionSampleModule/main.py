@@ -52,6 +52,8 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.cap_handle = None
         self.vs = None
         self.session = None
+        self.inp_sensor_addr = None
+        self.inp_sensor_type = None
 
         self.twin_update_flag = tu_flag_
         self.m_parser(manifest)
@@ -87,20 +89,16 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     #    return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
     def create_video_handle(self):
-        web_cam_found = False
-        for i in range(4):
-            if os.path.exists("/dev/video"+str(i)):
-              web_cam_found = True
-              break
+        if os.environ['InpSensorType'] is not None:
+            self.inp_sensor_type = os.environ['InpSensorType']
+            if os.environ['InpSensorAddr'] is not None:
+                self.inp_sensor_addr = os.environ['InpSensorAddr']
+            else:
+                print("\n Error: Camera sensor device node not found..")
+                print("\n Exiting inference...")
+                sys.exit(0)
 
-        if web_cam_found:
-           usb_video_path = "/dev/video"+str(i)
-        else:
-           print("\n Error: Input Camera device not found/detected")
-           print("\n Exisiting inference...")
-           sys.exit(0)
-
-        self.vs = VideoStream(usb_video_path).start()
+        self.vs = VideoStream(self.inp_sensor_addr).start()
 
         # Reading widht and height details
         self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
