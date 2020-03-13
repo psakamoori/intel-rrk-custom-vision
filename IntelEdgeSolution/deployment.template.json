@@ -65,6 +65,14 @@
             "settings": {
               "image": "${MODULES.VisionSampleModule}",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/tmp/.X11-unix:/tmp/.X11-unix\",\"/dev:/dev\"],\"NetworkMode\":\"host\",\"IpcMode\":\"host\",\"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"Env\":[\"DISPLAY=:0\"]}"
+            },
+            "env": {
+              "InpSensorType": {
+                "value": "usb_cam"
+              },
+              "InpSensorAddr": {
+                "value": "/dev/video0"
+              }
             }
           }
         }
