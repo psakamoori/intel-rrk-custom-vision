@@ -10,9 +10,9 @@
             "loggingOptions": "",
             "registryCredentials": {
               "intelcustomvision": {
-                "username": "IntelCustomVision",
-                "password": "NU=YewKvtH1U/n5wgtMW57WpACuqeZ2s",
-                "address": "intelcustomvision.azurecr.io"
+                "username": "MyCapReg",
+                "password": "bf2NyAPr1j+6Uur94eh03ouXKFWjIgho",
+                "address": "mycapreg.azurecr.io"
               }
             }
           }
@@ -42,7 +42,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "intelcustomvision.azurecr.io/visionsamplemodule:0.0.1-amd64",
+              "image": "mycapreg.azurecr.io/visionsamplemodule:0.0.10-amd64",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/tmp/.X11-unix:/tmp/.X11-unix\",\"/dev:/dev\"],\"NetworkMode\":\"host\",\"IpcMode\":\"host\",\"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"Env\":[\"DISPLAY=:0\"]}"
             }
           }
@@ -62,7 +62,7 @@
     },
     "VisionSampleModule": {
       "properties.desired": {
-        "inference_files_zip_url": "",
+        "inference_files_zip_url": "https://yadavmmldiag.blob.core.windows.net/dbe/model_nodisp_novideo.zip",
         "msg_per_minute": 10,
         "object_of_interest": "ALL"
       }

@@ -31,8 +31,13 @@ class VideoStream(object):
                    # if the `grabbed` boolean is `False`, then we have
                    # reached the end of the video file
                    if not grabbed:
-                      self.stop()
-                      return
+                    #Uncomment to stop on end
+                      #self.stop()
+                      #return               
+                    #print('no video RESETTING FRAMES TO 0 TO RUN IN LOOP')
+                    self.stream.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    continue
+                    
                    self.Q.put(frame)
 
                    #Clean the queue to keep only the latest frame

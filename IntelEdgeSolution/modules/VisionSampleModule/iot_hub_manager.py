@@ -43,18 +43,23 @@ class IotHubManager(object):
         self.setRestartCamera = False
 
     # sends a messager to the "ToUpstream" queue to be sent to hub
-    def send_message_to_upstream(self, message):
+    def send_message_to_upstream(self, message,last_sent_time=time.time()):
         try:
+            if(time.time() - last_sent_time <= (60/msg_per_minute)):
+                return last_sent_time
             message = IoTHubMessage(message)
             self.client.send_event_async(
                 TO_UPSTREAM_MESSAGE_QUEUE_NAME,
                 message,
                 self.__send_confirmation_callback,
                 0)
+            last_sent_time = time.time()
+            return last_sent_time
             # logging.info("finished sending message...")
         except Exception as ex:
             print("Exception in send_message_to_upstream: %s" % ex)
-            pass
+            return last_sent_time
+            #pass
 
     # Callback received when the message that we're forwarding is processed.
     def __send_confirmation_callback(self, message, result, user_context):

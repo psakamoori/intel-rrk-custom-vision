@@ -32,4 +32,6 @@ COPY image_classification.py ./
 COPY utility.py ./
 COPY model/cvexport.manifest model/
 COPY model model/
+COPY model/video.mp4 model/
+RUN chmod 777 model/video.mp4
 CMD [ "python3", "-u", "./main.py" ]
