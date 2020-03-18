@@ -152,12 +152,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                      end = (x_end,y_end)
 
                      if 0.50 < d['probability']:
-                        frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
+                        frame = cv2.rectangle(frame,start,end, (0, 255, 0), 2)
 
                         out_label = str(d['tagName'])
                         score = str(int(d['probability']*100))
-                        cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
-                        cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                        cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 2)
+                        #cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
                         message = { "Label": out_label,
                                     "Confidence": score,
@@ -173,7 +173,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                     res = obj.postprocess(predictions)
                     idx = np.argmax(res)
 
-                    frame = cv2.putText(frame, obj.labels[idx], (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                    frame = cv2.putText(frame, obj.labels[idx], (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 3)
 
                     message = { "Label": obj.labels[idx],
                                 "TimeStamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -189,12 +189,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
             if self.render == 1:
                 # Displaying the image
                 cv2.imshow("Inference results", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if cv2.waitKey(200) & 0xFF == ord('q'):
                    break
 
+        cv2.destroyAllWindows()          
         # when everything done, release the capture
         self.vs.__exit__(None, None, None)
-        cv2.destroyAllWindows()
 
 def main():
 
