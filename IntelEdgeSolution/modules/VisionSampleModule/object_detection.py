@@ -76,7 +76,7 @@ class ObjectDetection(object):
         if "Anchors" in data:
             self.anchors = np.array(data["Anchors"])
         else:
-            self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+            self.anchors = np.array([[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]])
 
         if "InputFormat" in data:
             self.input_format = str(data["InputFormat"])
