@@ -88,6 +88,7 @@ def get_file_zip(url,dst_folder="model") :
     remotefile = urlopen(url)
     myurl = remotefile.url
     FileName = myurl.split("/")[-1]
+
     if FileName:
         # find root folders
         dirpath = os.getcwd()
@@ -96,27 +97,25 @@ def get_file_zip(url,dst_folder="model") :
         src_file_path = os.path.join(src,FileName)
         logger.info("location to download is ::" + src_file_path)
         prepare_folder(dirpath_file)
-        print("Downloading File ::" + FileName)
+        print("\n Downloading File ::" + FileName)
 
         urllib2.urlretrieve(url, filename=src_file_path)
         WaitForFileDownload(src_file_path)
-        result=unzip_and_move(src_file_path)
-
+        result=unzip_and_move(src_file_path, dst_folder)
         return result
     else:
         print("Cannot extract file name from URL")
         return False
 
-def unzip_and_move(file_path=None,):
+def unzip_and_move(file_path=None, dst_folder="model"):
     zip_ref = zipfile.ZipFile(file_path,'r')
     dirpath = os.getcwd()
-    dirpath_file = os.path.join(dirpath,"model")
+    dirpath_file = os.path.join(dirpath, dst_folder)
     zip_ref.extractall(dirpath_file)
     zip_ref.close()
     logger.info("files unzipped to : " + dirpath_file)
     #transferdlc(True,"twin_provided_model")
     return True
-
 
 
 # thsi function pushes a new model to device to location /data/misc/camera mounted at /app/vam_model_folder
