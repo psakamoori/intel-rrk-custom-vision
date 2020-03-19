@@ -38,10 +38,12 @@ from onnxruntime.capi.onnxruntime_pybind11_state import RunOptions
 IOT_HUB_PROTOCOL = IoTHubTransportProvider.MQTT
 iot_hub_manager = IotHubManager(IOT_HUB_PROTOCOL)
 
+stream_handle = False
+
 class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     """Object Detection class for ONNX Runtime
     """
-    def __init__(self, manifest, tu_flag_=False):
+    def __init__(self, manifest_dir, cam_type="usb_cam", cam_source="/dev/video0", tu_flag_=False):
         # Default system params
         self.video_inp = "cam"
         self.render = True
@@ -53,12 +55,15 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.vs = None
         self.session = None
 
+        self.cam_type = cam_type
+        self.cam_source = cam_source
+        self.video_handle = None
         self.twin_update_flag = tu_flag_
-        self.m_parser(manifest)
+        self.m_parser(manifest_dir)
 
-    def m_parser(self, manifest):
+    def m_parser(self, model_dir):
 
-        m_file = open(manifest)
+        m_file = open(model_dir + str("/cvexport.manifest"))
         data = json.load(m_file)
 
          # cvexport manifest prameters
@@ -67,15 +72,18 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 
         # default anchors
         if str(self.domain_type) == "ObjectDetection":
-           objdet = ObjectDetection(data, None)
-           self.model_inference(objdet, iot_hub_manager, 1)
+           objdet = ObjectDetection(data, model_dir, None)
+           ret = self.model_inference(objdet, iot_hub_manager, 1)
         elif str(self.domain_type) == "Classification":
-           imgcls = ImageClassification(data)
-           self.model_inference(imgcls, iot_hub_manager, 0)
+           imgcls = ImageClassification(data, model_dir)
+           ret = self.model_inference(imgcls, iot_hub_manager, 0)
         else:
            print("Error: No matching DomainType: Object Detection/Image Classificaiton \n")
            print("Exiting.....!!!! \n")
            sys.exit(0)
+        if ret == 1:
+           print("App finished running Inference...Exiting...!!!")
+           sys.exit(1)
 
     #def predict(self, preprocessed_image):
     #    inputs = np.array(preprocessed_image, dtype=np.float32)[np.newaxis,:,:,(2,1,0)] # RGB -> BGR
@@ -86,48 +94,78 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     #    inference_time = end - start
     #    return np.squeeze(outputs).transpose((1,2,0)), inference_time
 
-    def create_video_handle(self):
-        web_cam_found = False
-        for i in range(4):
-            if os.path.exists("/dev/video"+str(i)):
-              web_cam_found = True
-              break
+    def create_video_handle(self, cam_type, cam_source):
+        global stream_handle
 
-        if web_cam_found:
-           usb_video_path = "/dev/video"+str(i)
+        if cam_type == "video_file":
+            video_dir = "sample_video"
+            # By default video file name should be video.mp4/avi
+            if os.path.exists(str(video_dir) + "/video.mp4"):
+               if cam_source:
+                  self.video_handle = str(str(video_dir) + "/video.mp4")
+            elif os.path.exists(str(video_dir) + "/video.avi"):
+               if cam_source:
+                  self.video_handle = str(str(video_dir) + "/video.avi")
+            else:
+                print("\n ERROR: Camera source Not Found...!!!")
+                print("\n Exiting inference...")
+                sys.exit(0)
         else:
-           print("\n Error: Input Camera device not found/detected")
-           print("\n Exisiting inference...")
-           sys.exit(0)
+            web_cam_found = False
+            for i in range(4):
+                if os.path.exists("/dev/video"+str(i)):
+                   web_cam_found = True
+                   break
 
-        self.vs = VideoStream(usb_video_path).start()
+            if web_cam_found:
+               self.video_handle = "/dev/video"+str(i)
+            else:
+               print("\n Error: Input Camera device not found/detected")
+               print("\n Exiting inference...")
+               sys.exit(0)
+
+        self.vs = VideoStream(self.video_handle).start()
 
         # Reading widht and height details
         self.img_width = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.img_height = int(self.vs.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        stream_handle = True
 
     def model_inference(self, obj, iot_hub_manager, pp_flag):
+        global stream_handle
 
-        self.create_video_handle()
+        # Default video surce to usb_cam @ /dev/video0
+        # If can change it to video_file in twin updates
+        # ***** Requirments to pass a video_file *****
+        # Video file should be .mp4/.avi extension with name of file a "video" Ex: video.mp4/avi
+        # Video file should be an url link to a .zip folder
+        self.create_video_handle(cam_type=self.cam_type, cam_source=self.cam_source)
+
         while self.vs.stream.isOpened():
             if iot_hub_manager.setRestartCamera == True:
                iot_hub_manager.setRestartCamera = False
+
+               if iot_hub_manager.model_url == None:
+                   model_folder = "./default_model"
+               else:
+                   model_folder = iot_hub_manager.model_dst_folder
+
                #self.cap_handle.release()
                obj.session = None
                #RunOptions.terminate = True
                self.vs.stream.release()
                cv2.destroyAllWindows()
 
-               if os.path.exists('./model/cvexport.manifest'):
+               if os.path.exists(str(model_folder) + str('/cvexport.manifest')):
                    print("\n Reading cvexport.config file from model folder")
-                   config_filename = "./model/cvexport.manifest"
-                   self.__init__(config_filename, True)
-                   self.create_video_handle()
-               elif os.path.exists("cvexport.manifest"):
-                   config_filename = "cvexport.manifest"
-                   print("\n Reading cvexport.manifest file from default base folder")
-                   self.__init__(config_filename, True)
-                   self.create_video_handle()
+                   config_file_dir = str(model_folder)
+                   #self.create_video_handle(iot_hub_manager.cam_type, iot_hub_manager.cam_source)
+                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, True)
+               elif os.path.exists("./default_model/cvexport.manifest"):
+                   config_file_dir = "./default_model"
+                   print("\n Reading cvexport.manifest file from default_model folder")
+                   #self.create_video_handle(iot_hub_manager.cam_type, iot_hub_manager.cam_source)
+                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, True)
                else:
                    print("\n ERROR: cvexport.manifest not found check root/model dir")
                    print("\n Exiting inference....")
@@ -154,12 +192,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                      end = (x_end,y_end)
 
                      if 0.50 < d['probability']:
-                        frame = cv2.rectangle(frame,start,end, (0, 255, 255), 2)
+                        frame = cv2.rectangle(frame,start,end, (100, 255, 100), 2)
 
                         out_label = str(d['tagName'])
                         score = str(int(d['probability']*100))
-                        cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
-                        cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                        cv2.putText(frame, out_label, (x-5, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 255, 255), 2)
+                        #cv2.putText(frame, score, (x+w-50, y), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
                         message = { "Label": out_label,
                                     "Confidence": score,
@@ -194,14 +232,15 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                    break
 
+        cv2.destroyAllWindows()
         # when everything done, release the capture
         self.vs.__exit__(None, None, None)
-        cv2.destroyAllWindows()
+        return True
 
 def main():
 
-    manifest_file_path = "./model/cvexport.manifest"
-    ONNXRuntimeModelDeploy(manifest_file_path)
+    manifest_file_path = "./default_model"
+    ONNXRuntimeModelDeploy(manifest_file_path, None, None, )
 
 if __name__ == '__main__':
     main()
