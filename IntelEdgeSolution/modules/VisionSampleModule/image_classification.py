@@ -27,7 +27,7 @@ import time
 class ImageClassification(object):
     """Image classification class for ONNX Runtime
     """
-    def __init__(self, data):
+    def __init__(self, data, model_dir):
 
         print("Call: Constructor: ImageClassification.__init__")
 
@@ -67,13 +67,13 @@ class ImageClassification(object):
             self.input_format = str(data["InputFormat"])
         
         self.session = None
-        self.onnxruntime_session_init()
+        self.onnxruntime_session_init(model_dir)
 
-    def onnxruntime_session_init(self):
+    def onnxruntime_session_init(self, model_dir):
         if self.session is not None:
            self.session = None
 
-        self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
+        self.session = onnxruntime.InferenceSession(str(str(model_dir) + str('/') + str(self.model_filename)))
 
         self.input_name = self.session.get_inputs()[0].name
 
@@ -81,8 +81,8 @@ class ImageClassification(object):
         self.model_inp_width = self.session.get_inputs()[0].shape[2]
         self.model_inp_height = self.session.get_inputs()[0].shape[3]
 
-        if os.path.isfile(str("./model/" + self.label_filename)):
-           with open(str("./model/" + self.label_filename), 'r') as f:
+        if os.path.isfile(str(str(model_dir) + str('/') + str(self.label_filename))):
+           with open(str(str(model_dir) + str('/') + str(self.label_filename)), 'r') as f:
               self.labels = [l.strip() for l in f.readlines()]
         else:
             print("Warning: Labels file not found")
@@ -142,6 +142,6 @@ class ImageClassification(object):
     def postprocess(self, result):
         return self.softmax(np.array(result)).tolist()
 
-def main(config_filename):
+#def main(config_filename):
 
-    ic_model = ONNXRuntimeImageClassification(config_filename)
+#    ic_model = ONNXRuntimeImageClassification(config_filename)
