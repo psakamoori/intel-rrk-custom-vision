@@ -41,6 +41,11 @@ class IotHubManager(object):
         self.client.set_option("messageTimeout", MESSAGE_TIMEOUT)
         self.client.set_module_twin_callback(self.module_twin_callback, self)
         self.setRestartCamera = False
+        self.cam_type = "usb_cam"
+        self.cam_source = "/dev/video0"
+        self.model_dst_folder = "./model"
+        self.model_url = None
+        self.ret_flag = None
 
     # sends a messager to the "ToUpstream" queue to be sent to hub
     def send_message_to_upstream(self, message):
@@ -86,6 +91,7 @@ class IotHubManager(object):
         global inference_files_zip_url
         global msg_per_minute
         global object_of_interest
+
         print ( "" )
         print ( "Twin callback called with:" )
         print ( "    updateStatus: %s" % update_state )
@@ -94,22 +100,54 @@ class IotHubManager(object):
         self.setRestartCamera = False
 
         if "desired" in data and "inference_files_zip_url" in data["desired"]:
-            dst_folder="./model"
+            self.model_dst_folder = "model"
             inference_files_zip_url = data["desired"]["inference_files_zip_url"]
             if inference_files_zip_url:
-                print("Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
-                self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                print("\n Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
+                self.setRestartCamera = get_file_zip(inference_files_zip_url, self.model_dst_folder)
+                self.model_url = inference_files_zip_url
             else:
                 print(inference_files_zip_url)
+                self.model_url = None
+
         if "inference_files_zip_url" in data:
-            dst_folder="model"
+            self.model_dst_folder = "model"
             inference_files_zip_url = data["inference_files_zip_url"]
             if inference_files_zip_url:
-                print("Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
-                self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
-                self.setRestartCamera = True
+                print("\n Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
+                self.ret_flag = get_file_zip(inference_files_zip_url, self.model_dst_folder)
+                #self.setRestartCamera = True
+                self.model_url = inference_files_zip_url
             else:
                 print(inference_files_zip_url)
+                self.model_url = None
+
+        if "desired" in data and "cam_type" in data["desired"]:
+            cam_type = data["desired"]["cam_type"]
+            self.cam_type = str(cam_type)
+        elif "cam_type" in data:
+            cam_type = data["cam_type"]
+            self.cam_type = str(cam_type)
+
+        if "desired" in data and "cam_source" in data["desired"]:
+            cam_source = data["desired"]["cam_source"]
+            self.cam_source = str(cam_source)
+        elif "cam_source" in data:
+            cam_source = data["cam_source"]
+            self.cam_source = str(cam_source)
+
+        if self.cam_source:
+            if self.cam_type == "video_file":
+                #print("self.cam_source %s file" % self.cam_source)
+                dst_folder = "sample_video"
+                print("\n Download and uzip video file to samples dir from %s" % self.cam_source)
+                self.ret_flag = get_file_zip(self.cam_source, dst_folder)
+                #self.setRestartCamera = True
+        else:
+            print(self.cam_source)
+
+        if self.ret_flag:
+           self.setRestartCamera = True
 
         if "desired" in data and "object_of_interest" in data["desired"]:
             object_of_interest = data["desired"]["object_of_interest"]
