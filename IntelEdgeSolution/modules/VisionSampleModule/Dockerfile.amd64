@@ -30,6 +30,8 @@ COPY VideoStream.py ./
 COPY iot_hub_manager.py ./
 COPY image_classification.py ./
 COPY utility.py ./
-COPY model/cvexport.manifest model/
+COPY default_model/cvexport.manifest default_model/
+COPY default_model default_model/
 COPY model model/
+COPY sample_video sample_video/ 
 CMD [ "python3", "-u", "./main.py" ]
