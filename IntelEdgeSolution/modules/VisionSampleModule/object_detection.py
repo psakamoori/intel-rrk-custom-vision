@@ -24,7 +24,7 @@ class ObjectDetection(object):
     """Class for Custom Vision's exported object detection model
     """
 
-    def __init__(self, data, labels=None, prob_threshold=0.10, max_detections = 20):
+    def __init__(self, data, model_dir, labels=None, prob_threshold=0.10, max_detections = 20):
         """Initialize the class
 
         Args:
@@ -76,7 +76,7 @@ class ObjectDetection(object):
         if "Anchors" in data:
             self.anchors = np.array(data["Anchors"])
         else:
-            self.anchors = np.array([[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]])
+            self.anchors = np.array([[0.573, 0.677], [1.87, 2.06], [3.34, 5.47], [7.88, 3.53], [9.77, 9.17]])
 
         if "InputFormat" in data:
             self.input_format = str(data["InputFormat"])
@@ -84,11 +84,11 @@ class ObjectDetection(object):
             self.input_format = "RGB"
 
         self.session = None
-        self.onnxruntime_session_init()
+        self.onnxruntime_session_init(model_dir)
 
-    def onnxruntime_session_init(self):
+    def onnxruntime_session_init(self, model_dir):
 
-        with open(str("./model/" + self.label_filename), 'r') as f:
+        with open(str(str(model_dir) + str('/') + str(self.label_filename)), 'r') as f:
              labels = [l.strip() for l in f.readlines()]
 
         assert len(labels) >= 1, "At least 1 label is required"
@@ -97,7 +97,7 @@ class ObjectDetection(object):
         #super(ObjectDetection, self).__init__(labels)
         print("\n Triggering Inference...")
 
-        self.session = onnxruntime.InferenceSession(str("./model/" + self.model_filename))
+        self.session = onnxruntime.InferenceSession(str(str(model_dir) + str('/') + str(self.model_filename)))
 
         # Reading input width & height from onnx model file
         self.model_inp_width = self.session.get_inputs()[0].shape[2]
