@@ -85,7 +85,9 @@
       "properties.desired":{
           "inference_files_zip_url":"",
           "msg_per_minute": 10,
-          "object_of_interest":"ALL"
+          "object_of_interest":"ALL",
+          "video_path":""
+
       }
     }
   }

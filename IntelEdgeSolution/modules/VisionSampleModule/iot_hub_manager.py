@@ -9,7 +9,7 @@ from iothub_client import IoTHubClient, IoTHubMessage, IoTHubModuleClient, IoTHu
 import logging
 import cv2
 
-from utility import get_file_zip
+from utility import get_file_zip,get_file
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -27,6 +27,7 @@ send_callbacks = 0
 inference_files_zip_url =""
 msg_per_minute = 12
 object_of_interest = "ALL"
+video_path = "./video/video.mp4"
 
 class IotHubManager(object):
     TIMER_COUNT = 2
@@ -88,54 +89,82 @@ class IotHubManager(object):
             print("Exception in send_property: %s" % ex)
 
     def module_twin_callback(self,update_state, payload, user_context):
-        global inference_files_zip_url
-        global msg_per_minute
-        global object_of_interest
-        print ( "" )
-        print ( "Twin callback called with:" )
-        print ( "    updateStatus: %s" % update_state )
-        print ( "    payload: %s" % payload )
-        data = json.loads(payload)
-        self.setRestartCamera = False
+        try:
+            global inference_files_zip_url
+            global msg_per_minute
+            global object_of_interest
+            global video_path
+            print ( "" )
+            print ( "Twin callback called with:" )
+            print ( "    updateStatus: %s" % update_state )
+            print ( "    payload: %s" % payload )
+            data = json.loads(payload)
+            self.setRestartCamera = False
+            self.restartCamera = False
+            if "desired" in data and "inference_files_zip_url" in data["desired"]:
+                dst_folder="./model"
+                inference_files_zip_url = data["desired"]["inference_files_zip_url"]
+                if inference_files_zip_url:
+                    print("Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
+                    self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                else:
+                    print(inference_files_zip_url)
+            if "inference_files_zip_url" in data:
+                dst_folder="model"
+                inference_files_zip_url = data["inference_files_zip_url"]
+                if inference_files_zip_url:
+                    print("Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
+                    self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
+                    #self.setRestartCamera = True
+                else:
+                    print(inference_files_zip_url)
 
-        if "desired" in data and "inference_files_zip_url" in data["desired"]:
-            dst_folder="./model"
-            inference_files_zip_url = data["desired"]["inference_files_zip_url"]
-            if inference_files_zip_url:
-                print("Setting value to %s from ::  data[\"desired\"][\"all_inference_files_zip\"]" % inference_files_zip_url)
-                self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
-            else:
-                print(inference_files_zip_url)
-        if "inference_files_zip_url" in data:
-            dst_folder="model"
-            inference_files_zip_url = data["inference_files_zip_url"]
-            if inference_files_zip_url:
-                print("Setting value to %s from ::  data[\"all_inference_files_zip\"]" % inference_files_zip_url)
-                self.setRestartCamera = get_file_zip(inference_files_zip_url,dst_folder)
-                self.setRestartCamera = True
-            else:
-                print(inference_files_zip_url)
 
-        if "desired" in data and "object_of_interest" in data["desired"]:
-            object_of_interest = data["desired"]["object_of_interest"]
-            print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
+            
+            if "desired" in data and "video_path" in data["desired"]:
+                dst_folder="video"
+                video_path = data["desired"]["video_path"]
+                if video_path:
+                    print("Setting value to %s from ::  data[\"desired\"][\"video_path\"]" % video_path)
+                    self.setRestartCamera = get_file_zip(video_path,dst_folder)
+                else:
+                    print(video_path)
+            if "video_path" in data:
+                dst_folder="video"
+                video_path = data["video_path"]
+                if video_path:
+                    print("Setting value to %s from ::  data[\"video_path\"]" % video_path)
+                    self.setRestartCamera = get_file_zip(video_path,dst_folder)
+                    self.setRestartCamera = True
+                else:
+                    print(video_path)
 
-        if "object_of_interest" in data:
-            object_of_interest = data["object_of_interest"]
-            print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
 
-        if "desired" in data and "msg_per_minute" in data["desired"]:
-            msg_per_minute = data["desired"]["msg_per_minute"]
-            print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
 
-        if "msg_per_minute" in data:
-            msg_per_minute = data["msg_per_minute"]
-            print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
+            
+            if "desired" in data and "object_of_interest" in data["desired"]:
+                object_of_interest = data["desired"]["object_of_interest"]
+                print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
+
+            if "object_of_interest" in data:
+                object_of_interest = data["object_of_interest"]
+                print("Setting value to %s from ::  data[\"object_of_interest\"]" % object_of_interest)
+
+            if "desired" in data and "msg_per_minute" in data["desired"]:
+                msg_per_minute = data["desired"]["msg_per_minute"]
+                print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
+
+            if "msg_per_minute" in data:
+                msg_per_minute = data["msg_per_minute"]
+                print("Setting value to %s from ::  data[\"msg_per_minute\"]" % msg_per_minute)
+        except Exception as ex:
+            print("Exception in module_twin_callback: %s" % ex)
 
         if self.setRestartCamera:
             # Restarting inference when get twinupdate
             try:
                 logger.info("Restarting inferencing")
+                self.restartCamera = True
 
             except Exception as e:
                 logger.info("Got an issue during cam ON off after twin update")

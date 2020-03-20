@@ -53,7 +53,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.cap_handle = None
         self.vs = None
         self.session = None
-        self.source = "./model/video.mp4"
+        self.source = "./video/video.mp4"
 
         self.twin_update_flag = tu_flag_
         self.m_parser(manifest)
@@ -135,12 +135,14 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         else:
             self.create_video_handle()
         while self.vs.stream.isOpened():
-            if iot_hub_manager.setRestartCamera == True:
-               iot_hub_manager.setRestartCamera = False
+            if iot_hub_manager.restartCamera == True:
+               iot_hub_manager.restartCamera = False
                #self.cap_handle.release()
                obj.session = None
                #RunOptions.terminate = True
-               self.vs.stream.release()
+               #self.vs.stream.stop()
+               #time.sleep(1)
+               self.vs.stream.release
 
                if self.render == 1:
                    cv2.destroyAllWindows()
@@ -152,7 +154,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                    if(self.source is not None):
                        self.create_video_handle(self.source)
                    else:
-                        self.create_video_handle()
+                       self.create_video_handle()
                elif os.path.exists("cvexport.manifest"):
                    config_filename = "cvexport.manifest"
                    print("\n Reading cvexport.manifest file from default base folder")
@@ -165,7 +167,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                    print("\n ERROR: cvexport.manifest not found check root/model dir")
                    print("\n Exiting inference....")
                    sys.exit(0)
-               #iot_hub_manager.setRestartCamera = False
+               #iot_hub_manager.restartCamera = False
             
             # Caputre frame-by-frame
             frame = self.vs.read()

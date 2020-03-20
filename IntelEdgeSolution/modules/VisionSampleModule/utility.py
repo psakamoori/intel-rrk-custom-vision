@@ -64,7 +64,7 @@ def WaitForFileDownload(FileName):
         except IOError:
             time.sleep(1)
     print("Got it ! File Download Complete !")
-def get_file(url,dst_folder="/app/vam_model_folder") :
+def get_file(url,dst_folder="video") :
     #adding code to fix issue where the file name may not be part of url details here
     remotefile = urlopen(url)
     myurl = remotefile.url
@@ -74,6 +74,7 @@ def get_file(url,dst_folder="/app/vam_model_folder") :
         dirpath = os.getcwd()
         #src = os.path.join(dirpath,"model")
         dst = os.path.abspath(dst_folder)
+        prepare_folder(dst)
         print("Downloading File ::" + FileName)
         urllib2.urlretrieve(url, filename=(os.path.join(dst,FileName)))
         WaitForFileDownload(os.path.join(dst,FileName))

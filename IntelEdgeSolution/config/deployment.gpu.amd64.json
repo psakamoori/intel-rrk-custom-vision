@@ -42,7 +42,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "mycapreg.azurecr.io/visionsamplemodule:0.0.31-gpuamd64",
+              "image": "mycapreg.azurecr.io/visionsamplemodule:0.0.40-gpuamd64",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/tmp/.X11-unix:/tmp/.X11-unix\",\"/dev:/dev\"],\"NetworkMode\":\"host\",\"IpcMode\":\"host\",\"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"Env\":[\"DISPLAY=:0\"]}"
             }
           }
@@ -64,7 +64,8 @@
       "properties.desired": {
         "inference_files_zip_url": "",
         "msg_per_minute": 10,
-        "object_of_interest": "ALL"
+        "object_of_interest": "ALL",
+        "video_path": ""
       }
     }
   }

@@ -10,7 +10,7 @@
   "ModelFileSHA1": "4fc28728414d5031f46bf149d14e79a13fcd3120",
   "SchemaVersion": "1.0",
   "InputStream":"source",
-  "SourcePath":"./model/video.mp4",
+  "SourcePath":"./video/video.mp4",
   "Anchors": [[1.08, 1.19], [3.42, 4.41],  [6.63, 11.38],  [9.42, 5.11],  [16.62, 10.52]],
   "ScaleWidth":416,
   "ScaleHeight":416,
