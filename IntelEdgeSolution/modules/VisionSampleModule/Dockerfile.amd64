@@ -32,6 +32,5 @@ COPY image_classification.py ./
 COPY utility.py ./
 COPY default_model/cvexport.manifest default_model/
 COPY default_model default_model/
-COPY model model/
 COPY sample_video sample_video/ 
 CMD [ "python3", "-u", "./main.py" ]
