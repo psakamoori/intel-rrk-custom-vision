@@ -110,6 +110,13 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                 print("\n ERROR: Camera source Not Found...!!!")
                 print("\n Exiting inference...")
                 sys.exit(0)
+        if cam_type == "rtsp_stream":
+            if cam_source:
+                self.video_handle = str(cam_source)
+            else:
+                print("\n ERROR: Camera source Not Found...!!!")
+                print("\n Exiting inference...")
+                sys.exit(0)
         else:
             web_cam_found = False
             for i in range(4):
