@@ -43,7 +43,7 @@ stream_handle = False
 class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
     """Object Detection class for ONNX Runtime
     """
-    def __init__(self, manifest_dir, cam_type="usb_cam", cam_source="/dev/video0", tu_flag_=False):
+    def __init__(self, manifest_dir, cam_type="usb_cam", cam_source="/dev/video0", device="CPU_FP32", tu_flag_=False):
         # Default system params
         self.video_inp = "cam"
         self.render = True
@@ -54,7 +54,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
         self.cap_handle = None
         self.vs = None
         self.session = None
-
+        self.device = device
         self.cam_type = cam_type
         self.cam_source = cam_source
         self.video_handle = None
@@ -72,10 +72,10 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 
         # default anchors
         if str(self.domain_type) == "ObjectDetection":
-           objdet = ObjectDetection(data, model_dir, None)
+           objdet = ObjectDetection(data, model_dir, self.device, None)
            ret = self.model_inference(objdet, iot_hub_manager, 1)
         elif str(self.domain_type) == "Classification":
-           imgcls = ImageClassification(data, model_dir)
+           imgcls = ImageClassification(data, model_dir, self.device)
            ret = self.model_inference(imgcls, iot_hub_manager, 0)
         else:
            print("Error: No matching DomainType: Object Detection/Image Classificaiton \n")
@@ -167,12 +167,12 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
                    print("\n Reading cvexport.config file from model folder")
                    config_file_dir = str(model_folder)
                    #self.create_video_handle(iot_hub_manager.cam_type, iot_hub_manager.cam_source)
-                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, True)
+                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, iot_hub_manager.device, True)
                elif os.path.exists("./default_model/cvexport.manifest"):
                    config_file_dir = "./default_model"
                    print("\n Reading cvexport.manifest file from default_model folder")
                    #self.create_video_handle(iot_hub_manager.cam_type, iot_hub_manager.cam_source)
-                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, True)
+                   self.__init__(config_file_dir, iot_hub_manager.cam_type, iot_hub_manager.cam_source, iot_hub_manager.device, True)
                else:
                    print("\n ERROR: cvexport.manifest not found check root/model dir")
                    print("\n Exiting inference....")
@@ -247,7 +247,7 @@ class ONNXRuntimeModelDeploy(ObjectDetection, ImageClassification):
 def main():
 
     manifest_file_path = "./default_model"
-    ONNXRuntimeModelDeploy(manifest_file_path, None, None, )
+    ONNXRuntimeModelDeploy(manifest_file_path, None, None, "CPU_FP32", False)
 
 if __name__ == '__main__':
     main()
