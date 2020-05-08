@@ -87,7 +87,8 @@
           "msg_per_minute": 10,
           "object_of_interest":"ALL",
           "cam_type":"usb_cam",
-          "cam_source":"/dev/video0"
+          "cam_source":"/dev/video0",
+          "device":"CPU_FP32"
       }
     }
   }
