@@ -27,7 +27,7 @@ import time
 class ImageClassification(object):
     """Image classification class for ONNX Runtime
     """
-    def __init__(self, data, model_dir):
+    def __init__(self, data, model_dir, device):
 
         print("Call: Constructor: ImageClassification.__init__")
 
@@ -67,11 +67,13 @@ class ImageClassification(object):
             self.input_format = str(data["InputFormat"])
         
         self.session = None
-        self.onnxruntime_session_init(model_dir)
+        self.onnxruntime_session_init(model_dir, device)
 
-    def onnxruntime_session_init(self, model_dir):
+    def onnxruntime_session_init(self, model_dir, device):
         if self.session is not None:
            self.session = None
+
+        onnxruntime.capi._pybind_state.set_openvino_device(device)
 
         self.session = onnxruntime.InferenceSession(str(str(model_dir) + str('/') + str(self.model_filename)))
 
