@@ -43,6 +43,7 @@ class IotHubManager(object):
         self.setRestartCamera = False
         self.cam_type = "usb_cam"
         self.cam_source = "/dev/video0"
+        self.device = "CPU_FP32"
         self.model_dst_folder = "./model"
         self.model_url = None
         self.ret_flag = None
@@ -109,6 +110,10 @@ class IotHubManager(object):
             else:
                 print(inference_files_zip_url)
                 self.model_url = None
+        if "device" in data:
+            self.device = data["device"]
+        elif "deisred" in data and "device" in data["desired"]:
+            self.device = data["device"]
 
         if "inference_files_zip_url" in data:
             self.model_dst_folder = "model"
