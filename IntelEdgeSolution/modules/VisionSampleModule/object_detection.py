@@ -24,7 +24,7 @@ class ObjectDetection(object):
     """Class for Custom Vision's exported object detection model
     """
 
-    def __init__(self, data, model_dir, labels=None, prob_threshold=0.10, max_detections = 20):
+    def __init__(self, data, model_dir, device, labels=None, prob_threshold=0.10, max_detections = 20):
         """Initialize the class
 
         Args:
@@ -84,9 +84,11 @@ class ObjectDetection(object):
             self.input_format = "RGB"
 
         self.session = None
-        self.onnxruntime_session_init(model_dir)
+        self.onnxruntime_session_init(model_dir, device)
 
-    def onnxruntime_session_init(self, model_dir):
+    def onnxruntime_session_init(self, model_dir, device):
+
+        onnxruntime.capi._pybind_state.set_openvino_device(device)
 
         with open(str(str(model_dir) + str('/') + str(self.label_filename)), 'r') as f:
              labels = [l.strip() for l in f.readlines()]
